@@ -312,7 +312,8 @@
                 </form>
             </div>
         </div> 
-        <div id="user-info-bar"> <img id="user-icon" src="" alt="icon">
+        <div id="user-info-bar">
+            <img id="user-icon" src="" alt="icon">
             <span id="user-name"></span>
             <button id="settings-btn" title="プロフィール設定">⚙️</button>
         </div>
@@ -345,7 +346,7 @@
 
     <script type="module">
         // Firebase SDK のコアモジュールをインポート
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"; // ★ https://
         // 認証 (Auth) サービスをインポート
         import { 
             getAuth, 
@@ -354,13 +355,13 @@
             onAuthStateChanged,
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword
-        } from "https.www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"; // ★ https://
         // Firestore データベースサービスをインポート
         import { 
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
             arrayUnion, deleteDoc
-        } from "https.www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; // ★ https://
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
         const firebaseConfig = {
