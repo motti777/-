@@ -102,6 +102,7 @@
             margin-top: 15px;
             text-align: center;
             font-size: 0.9em;
+            min-height: 1.2em; /* エラー表示用に高さを確保 */
         }
 
         /* --- ここから下は変更なし (チャット画面のCSS) --- */
@@ -287,8 +288,7 @@
         </div>
     </div>
 
-    <div id="sidebar">
-        <div id="sidebar-scroll-container">
+    <div id="sidebar" class="hidden"> <div id="sidebar-scroll-container">
             <div id="channel-list-container">
                 <h3>公開チャンネル</h3>
                 <ul id="public-channel-list" class="channel-list"></ul>
@@ -312,15 +312,13 @@
                 </form>
             </div>
         </div> 
-        <div id="user-info-bar" class="hidden">
-            <img id="user-icon" src="" alt="icon">
+        <div id="user-info-bar"> <img id="user-icon" src="" alt="icon">
             <span id="user-name"></span>
             <button id="settings-btn" title="プロフィール設定">⚙️</button>
         </div>
     </div>
 
-    <div id="main-content">
-        <div id="main-header">#<span id="current-channel-name">general</span></div>
+    <div id="main-content" class="hidden"> <div id="main-header">#<span id="current-channel-name">general</span></div>
         <div id="message-list"></div>
         <form id="message-form">
             <input type="text" id="message-input" placeholder="メッセージを送信..." autocomplete="off">
@@ -354,7 +352,6 @@
             GoogleAuthProvider, 
             signInWithPopup, 
             onAuthStateChanged,
-            // ★メール認証用の関数をインポート★
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword
         } from "https.www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
@@ -381,7 +378,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // --- ★1. 認証 (ログイン) 処理 (大幅変更)★ ---
+        // --- 1. 認証 (ログイン) 処理 ---
         
         // DOM要素の取得 (ログイン関連)
         const loginOverlay = document.getElementById('login-overlay');
@@ -390,6 +387,40 @@
         const registerForm = document.getElementById('register-form');
         const loginError = document.getElementById('login-error');
         const googleLoginBtn = document.getElementById('google-login-btn');
+        
+        // DOM要素の取得 (チャット関連)
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const userInfoBar = document.getElementById('user-info-bar');
+        const userIcon = document.getElementById('user-icon');
+        const userName = document.getElementById('user-name');
+        const messageList = document.getElementById('message-list');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const publicChannelList = document.getElementById('public-channel-list');
+        const privateChannelList = document.getElementById('private-channel-list');
+        const addChannelForm = document.getElementById('add-channel-form');
+        const addChannelInput = document.getElementById('add-channel-input');
+        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
+        const secretIdInput = document.getElementById('secret-id-input');
+        const joinPrivateForm = document.getElementById('join-private-form');
+        const joinIdInput = document.getElementById('join-id-input');
+        const currentChannelName = document.getElementById('current-channel-name');
+        const settingsBtn = document.getElementById('settings-btn');
+        const profileModalOverlay = document.getElementById('profile-modal-overlay');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const profileIconInput = document.getElementById('profile-icon-input');
+        const profileCancelBtn = document.getElementById('profile-cancel-btn');
+        const profileSaveBtn = document.getElementById('profile-save-btn');
+        
+        // グローバル変数
+        let currentUser = null;
+        let usersMap = {}; 
+        let currentMessages = [];
+        let currentChannelId = 'general'; 
+        let unsubscribeMessages = null; 
+        let unsubscribeMyProfile = null; 
+
         
         // ★ログイン/新規登録のタブ切り替え
         loginTabs.forEach(tab => {
@@ -406,6 +437,7 @@
         
         // ★Googleログイン
         googleLoginBtn.addEventListener('click', async () => {
+            loginError.textContent = '';
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
@@ -466,46 +498,48 @@
                 // ログイン成功
                 currentUser = user;
                 loginOverlay.classList.add('hidden'); 
+                sidebar.classList.remove('hidden'); // ★チャットUIを表示
+                mainContent.classList.remove('hidden'); // ★チャットUIを表示
                 
                 // ★Firestoreの 'users' 名簿を準備 (Googleログインの初回時のみ)
                 await setupUserProfile(user); 
                 
-                // (ここから下はチャット機能の呼び出し ... 変更なし)
+                // (ここから下はチャット機能の呼び出し)
                 listenToMyProfileAndPrivateChannels(user.uid); 
-                userInfoBar.classList.remove('hidden'); 
                 listenToUsers(); 
                 listenToPublicChannels(); 
+                
                 // 最後に general チャンネルに接続
-                if (currentChannelId === 'general') {
-                    switchChannel('general', 'general');
-                } else {
-                    // (もし他のCHにいたらそのまま)
-                }
+                switchChannel('general', 'general');
                 
             } else {
                 // ログアウト状態
                 currentUser = null;
                 loginOverlay.classList.remove('hidden'); 
-                userInfoBar.classList.add('hidden'); 
+                sidebar.classList.add('hidden'); // ★チャットUIを隠す
+                mainContent.classList.add('hidden'); // ★チャットUIを隠す
+                
+                // メッセージとチャンネルリストをクリア
                 messageList.innerHTML = ''; 
                 publicChannelList.innerHTML = '';
                 privateChannelList.innerHTML = '';
+                
+                // 監視を停止
                 if (unsubscribeMessages) unsubscribeMessages();
                 if (unsubscribeMyProfile) unsubscribeMyProfile();
             }
         });
         
-        // ★ユーザー名簿(users)を準備する関数 (★重要★)
+        // ★ユーザー名簿(users)を準備する関数
         async function setupUserProfile(user) {
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
             
             if (!userDoc.exists()) {
-                // ★このブロックは、主に「Googleログイン」の初回時に実行される★
-                // (メール/パスワード登録者は、登録時↑に既に 'users' が作られているため、ここはスキップされる)
+                // ★主に「Googleログイン」の初回時に実行される★
                 await setDoc(userRef, {
-                    displayName: user.displayName || '名無しさん', // Google名 (もし無ければ '名無しさん')
-                    photoURL: user.photoURL || 'https.i.imgur.com/6M6yJ1I.png', // Googleアイコン (もし無ければデフォルト)
+                    displayName: user.displayName || '名無しさん', // Google名
+                    photoURL: user.photoURL || 'https.i.imgur.com/6M6yJ1I.png', // Googleアイコン
                     joinedPrivateChannels: []
                 });
             }
@@ -529,46 +563,15 @@
             }
         }
 
-        // --- ★ここから下はチャット機能のJS (一切変更なし)★ ---
-
-        // (DOM要素の取得 ... チャット関連)
-        const userInfoBar = document.getElementById('user-info-bar');
-        const userIcon = document.getElementById('user-icon');
-        const userName = document.getElementById('user-name');
-        const messageList = document.getElementById('message-list');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        const publicChannelList = document.getElementById('public-channel-list');
-        const privateChannelList = document.getElementById('private-channel-list');
-        const addChannelForm = document.getElementById('add-channel-form');
-        const addChannelInput = document.getElementById('add-channel-input');
-        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
-        const secretIdInput = document.getElementById('secret-id-input');
-        const joinPrivateForm = document.getElementById('join-private-form');
-        const joinIdInput = document.getElementById('join-id-input');
-        const currentChannelName = document.getElementById('current-channel-name');
-        const settingsBtn = document.getElementById('settings-btn');
-        const profileModalOverlay = document.getElementById('profile-modal-overlay');
-        const profileNameInput = document.getElementById('profile-name-input');
-        const profileIconInput = document.getElementById('profile-icon-input');
-        const profileCancelBtn = document.getElementById('profile-cancel-btn');
-        const profileSaveBtn = document.getElementById('profile-save-btn');
-
-        // (グローバル変数 ... 変更なし)
-        let usersMap = {}; 
-        let currentMessages = [];
-        let currentChannelId = 'general'; 
-        let unsubscribeMessages = null; 
-        let unsubscribeMyProfile = null; 
-
-        // --- 2. チャンネル処理 (変更なし) ---
+        // --- 2. チャンネル処理 ---
         function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
             unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
-                    userIcon.src = data.photoURL || 'https.i.imgur.com/6M6yJ1I.png'; // ★アイコンが無い場合の対策
+                    userIcon.src = data.photoURL || 'https.i.imgur.com/6M6yJ1I.png'; // ★
                     userName.textContent = data.displayName;
+                    // プロフィール編集モーダルのため
                     profileNameInput.value = data.displayName;
                     profileIconInput.value = data.photoURL;
                 }
@@ -577,12 +580,14 @@
         async function renderPrivateChannels(idArray) {
             privateChannelList.innerHTML = ''; 
             for (const id of idArray) {
-                const channelDoc = await getDoc(doc(db, "channels", id));
-                if (channelDoc.exists()) {
-                    const channel = channelDoc.data();
-                    const li = createChannelElement(channelDoc.id, channel.name, true, channel.ownerId); 
-                    privateChannelList.appendChild(li);
-                }
+                try { // ★削除されたCHを読み込もうとした時のエラー対策
+                    const channelDoc = await getDoc(doc(db, "channels", id));
+                    if (channelDoc.exists()) {
+                        const channel = channelDoc.data();
+                        const li = createChannelElement(channelDoc.id, channel.name, true, channel.ownerId); 
+                        privateChannelList.appendChild(li);
+                    }
+                } catch(e) { console.warn("読み込めないチャンネルがあります:", id); }
             }
         }
         function listenToPublicChannels() {
@@ -616,7 +621,7 @@
                 switchChannel(id, name);
             });
             li.appendChild(nameSpan);
-            if (ownerId === currentUser.uid) { 
+            if (ownerId === currentUser.uid && id !== 'general') { // ★generalは削除不可
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-channel-btn';
                 deleteBtn.innerHTML = '🗑️';
@@ -693,7 +698,7 @@
             listenToMessages(channelId);
         }
 
-        // --- 3. メッセージ送受信処理 (変更なし) ---
+        // --- 3. メッセージ送受信処理 ---
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const text = messageInput.value.trim();
@@ -738,11 +743,11 @@
             messageList.scrollTop = messageList.scrollHeight;
         }
 
-        // --- 4. メッセージ表示ヘルパー (変更なし) ---
+        // --- 4. メッセージ表示ヘルパー ---
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
-            const safeIcon = icon || 'https.i.imgur.com/6M6yJ1I.png'; // ★デフォルトアイコン
+            const safeIcon = icon || 'https.i.imgur.com/6M6yJ1I.png'; // ★
             const safeText = text || ''; 
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
@@ -756,14 +761,14 @@
             messageList.appendChild(msgDiv);
         }
         
-        // --- 5. プロフィール編集モーダルの処理 (変更なし) ---
+        // --- 5. プロフィール編集モーダル ---
         settingsBtn.addEventListener('click', () => { profileModalOverlay.classList.remove('hidden'); });
         profileCancelBtn.addEventListener('click', () => { profileModalOverlay.classList.add('hidden'); });
         profileSaveBtn.addEventListener('click', async () => {
             const newName = profileNameInput.value.trim();
             let newIcon = profileIconInput.value.trim();
             if (newName === '') return alert('名前を入力してください。');
-            if (newIcon === '') newIcon = 'https.i.imgur.com/6M6yJ1I.png'; // ★空ならデフォルトに
+            if (newIcon === '') newIcon = 'https.i.imgur.com/6M6yJ1I.png'; // ★
             if (!currentUser) return;
             try {
                 const userRef = doc(db, "users", currentUser.uid);
