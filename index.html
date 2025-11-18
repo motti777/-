@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムチャット (メール認証対応)</title>
+    <title>sinesinesine</title>
     
     <style>
         body {
@@ -105,7 +105,7 @@
             min-height: 1.2em; /* エラー表示用に高さを確保 */
         }
 
-        /* --- ここから下は変更なし (チャット画面のCSS) --- */
+        /* --- ここから下はチャット画面のCSS --- */
 
         /* サイドバー */
         #sidebar {
@@ -211,8 +211,8 @@
         .message { margin-bottom: 15px; display: flex; }
         .message-icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
         .message-content { padding-top: 5px; }
-        .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; }
-        .message-text { line-height: 1.4; color: #dcddde; }
+        .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; } /* ★チャットの名前 (白)★ */
+        .message-text { line-height: 1.4; color: #dcddde; } /* ★チャットの本文 (グレー)★ */
 
         /* 送信フォーム */
         #message-form {
@@ -660,7 +660,10 @@
             if (isPrivateCheckbox.checked) {
                 const secretId = secretIdInput.value.trim();
                 // (isPrivateCheckbox.checked なので secretIdInput.required は true のはず)
-                if (secretId === '') return alert('ID（合言葉）を入力してください。');
+                if (secretId === '') {
+                    alert('ID（合言葉）を入力してください。');
+                    return; // ★ここで止める
+                }
                 newChannelData.secretId = secretId;
             }
             try {
@@ -748,7 +751,7 @@
             messageList.scrollTop = messageList.scrollHeight;
         }
 
-        // --- 4. メッセージ表示ヘルパー ---
+        // --- 4. メッセージ表示ヘルパー (★バグ修正★) ---
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
@@ -756,15 +759,8 @@
             const safeText = text || ''; 
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
-            msgDiv.innerHTML = `
-                <img src="${safeIcon}" class="message-icon" alt="${name}">
-                <div class="message-content">
-                    <div class="sender-name">${name}</div>
-                    ${messageBodyHTML}
-                </div>
-            `;
-            // ★ CSSのクラス名を修正 (message-sender -> sender-name)
-            // ... と思ったが、CSS側が .message-sender だったので、CSSに合わせてHTML側を修正する
+            
+            // ★ CSS(.message-sender)に合わせて修正 ★
             msgDiv.innerHTML = `
                 <img src="${safeIcon}" class="message-icon" alt="${name}">
                 <div class="message-content">
