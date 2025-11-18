@@ -123,13 +123,36 @@
         #channel-list-container {
             padding: 10px;
         }
-        /* ★これが「公開チャンネル」「プライベートチャンネル」の見出し★ */
+        
+        /* ★★★ (ここが修正箇所) ★★★ */
+        /* ★チャンネル見出し (開閉機能)★ */
         #channel-list-container h3 {
             margin: 10px 5px 5px;
             color: #8e9297;
             font-size: 0.8em;
             text-transform: uppercase;
+            cursor: pointer; /* ★クリックできることを示す */
+            position: relative; /* ★矢印のため */
+            padding-left: 15px; /* ★矢印のスペース */
         }
+        /* ★矢印のスタイル★ */
+        #channel-list-container h3::before {
+            content: '▼'; /* デフォルトは開いている矢印 */
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            transition: transform 0.2s; /* アニメーション */
+        }
+        /* ★閉じている時の矢印★ */
+        #channel-list-container h3.collapsed::before {
+            content: '►';
+        }
+        /* ★閉じている時のリスト (JSで .hidden をトグルする)★ */
+        /* .channel-list.hidden は、一番下の汎用クラス .hidden で定義済み */
+        /* ★★★ (修正ここまで) ★★★ */
+
         .channel-list {
             list-style: none;
             padding: 0;
@@ -403,8 +426,8 @@
         const privateChannelList = document.getElementById('private-channel-list');
         const addChannelForm = document.getElementById('add-channel-form');
         const addChannelInput = document.getElementById('add-channel-input');
-        const isPrivateCheckbox = document.getElementById('is-private-checkbox'); // ★
-        const secretIdInput = document.getElementById('secret-id-input'); // ★
+        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
+        const secretIdInput = document.getElementById('secret-id-input'); 
         const joinPrivateForm = document.getElementById('join-private-form');
         const joinIdInput = document.getElementById('join-id-input');
         const currentChannelName = document.getElementById('current-channel-name');
@@ -559,6 +582,25 @@
         }
 
         // --- 2. チャンネル処理 ---
+        
+        // ★★★ (ここが修正箇所) ★★★
+        // ★チャンネルリストの開閉（アコーディオン）機能★
+        const channelHeaders = document.querySelectorAll('#channel-list-container h3');
+        channelHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                // ヘッダーに 'collapsed' クラスをトグル
+                header.classList.toggle('collapsed');
+                
+                // 次の兄弟要素 (ul.channel-list) を取得
+                const list = header.nextElementSibling;
+                if (list && list.classList.contains('channel-list')) {
+                    // ul の表示/非表示を切り替え
+                    list.classList.toggle('hidden');
+                }
+            });
+        });
+        // ★★★ (修正ここまで) ★★★
+
         function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
             unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
