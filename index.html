@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムチャット (sexsex-90a07)</title>
+    <title>リアルタイムチャット (プロフィール変更対応)</title>
     
     <style>
         body {
@@ -67,6 +67,19 @@
             border-radius: 50%;
             margin-right: 10px;
         }
+        /* ★設定ボタン★ */
+        #settings-btn {
+            background: none;
+            border: none;
+            color: #b9bbbe;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-left: auto;
+            padding: 5px;
+        }
+        #settings-btn:hover {
+            color: #fff;
+        }
 
         #main-content {
             flex-grow: 1;
@@ -102,7 +115,7 @@
         }
         .message-text {
             line-height: 1.4;
-            color: #dcddde; /* メッセージ本文の色を明示 */
+            color: #dcddde;
         }
 
         /* 送信フォーム */
@@ -121,6 +134,69 @@
             font-size: 1em;
             outline: none;
         }
+        
+        /* ★プロフィール編集モーダル★ */
+        #profile-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #profile-modal {
+            background: #2f3136;
+            padding: 30px;
+            border-radius: 8px;
+            width: 400px;
+        }
+        #profile-modal h2 {
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b9bbbe;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #202225;
+            border: 1px solid #40444b;
+            color: #dcddde;
+            border-radius: 5px;
+            box-sizing: border-box; /* 幅がはみ出ないように */
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        #profile-cancel-btn {
+            background: #747f8d;
+            color: white;
+        }
+        #profile-save-btn {
+            background: #5865f2;
+            color: white;
+        }
+        
+        /* 隠すための汎用クラス */
+        .hidden {
+            display: none !important;
+        }
+
     </style>
 </head>
 <body>
@@ -136,9 +212,10 @@
         <div id="sidebar-header">
             <h3># 一般チャネル</h3>
         </div>
-        <div id="user-info" style="display: none;">
+        <div id="user-info" class="hidden">
             <img id="user-icon" src="" alt="icon">
             <span id="user-name"></span>
+            <button id="settings-btn" title="プロフィール設定">⚙️</button>
         </div>
     </div>
 
@@ -150,6 +227,24 @@
             <input type="text" id="message-input" placeholder="メッセージを送信..." autocomplete="off">
         </form>
     </div>
+    
+    <div id="profile-modal-overlay" class="hidden">
+        <div id="profile-modal">
+            <h2>プロフィールを編集</h2>
+            <div class="form-group">
+                <label for="profile-name-input">表示名</label>
+                <input type="text" id="profile-name-input">
+            </div>
+            <div class="form-group">
+                <label for="profile-icon-input">アイコンURL</label>
+                <input type="text" id="profile-icon-input" placeholder="https://example.com/image.png">
+            </div>
+            <div class="modal-buttons">
+                <button id="profile-cancel-btn">キャンセル</button>
+                <button id="profile-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         // Firebase SDK のコアモジュールをインポート
@@ -157,7 +252,10 @@
         // 認証 (Auth) サービスをインポート
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         // Firestore データベースサービスをインポート
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { 
+            getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
+            serverTimestamp, doc, setDoc, updateDoc, getDoc 
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
         const firebaseConfig = {
@@ -173,8 +271,6 @@
 
         // Firebase アプリを初期化
         const app = initializeApp(firebaseConfig);
-        
-        // Firebase の各サービスへの参照を取得
         const auth = getAuth(app);
         const db = getFirestore(app);
         
@@ -187,9 +283,19 @@
         const messageList = document.getElementById('message-list');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
+        
+        // ★プロフィール編集モーダル関連のDOM
+        const settingsBtn = document.getElementById('settings-btn');
+        const profileModalOverlay = document.getElementById('profile-modal-overlay');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const profileIconInput = document.getElementById('profile-icon-input');
+        const profileCancelBtn = document.getElementById('profile-cancel-btn');
+        const profileSaveBtn = document.getElementById('profile-save-btn');
 
         let currentUser = null;
-
+        let usersMap = {}; // ユーザーIDとプロフィール情報を紐付けるマップ
+        let currentMessages = []; // 表示中のメッセージリスト
+        
         // --- 1. 認証 (ログイン) 処理 ---
         
         loginBtn.addEventListener('click', async () => {
@@ -201,83 +307,139 @@
             }
         });
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 // ログイン成功
                 currentUser = user;
-                loginOverlay.style.display = 'none'; 
+                loginOverlay.classList.add('hidden'); 
                 
-                userIcon.src = user.photoURL;
-                userName.textContent = user.displayName;
-                userInfo.style.display = 'flex'; // ユーザー情報を表示
+                // ★『users』コレクション（名簿）に情報を登録・更新
+                await setupUserProfile(user);
                 
-                loadMessages();
+                // ★自分のプロフィール情報を監視し、サイドバーに反映
+                listenToMyProfile(user.uid);
+
+                userInfo.classList.remove('hidden'); // ユーザー情報を表示
+                
+                // ★チャットの監視を開始
+                listenToUsers(); // まず全ユーザーの名簿を監視
+                listenToMessages(); // 次にメッセージを監視
                 
             } else {
                 // ログアウト状態
                 currentUser = null;
-                loginOverlay.style.display = 'flex'; 
-                userInfo.style.display = 'none'; // ユーザー情報を隠す
+                loginOverlay.classList.remove('hidden'); 
+                userInfo.classList.add('hidden'); // ユーザー情報を隠す
                 messageList.innerHTML = ''; // メッセージをクリア
             }
         });
+        
+        // ★ログイン時にユーザー名簿(users)を準備する関数
+        async function setupUserProfile(user) {
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                // 名簿にまだ登録されていなければ、Googleの情報を初期値として登録
+                await setDoc(userRef, {
+                    displayName: user.displayName,
+                    photoURL: user.photoURL
+                });
+            }
+        }
+        
+        // ★自分のプロフィール情報を監視し、サイドバーに反映する関数
+        function listenToMyProfile(uid) {
+            const userRef = doc(db, "users", uid);
+            onSnapshot(userRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    userIcon.src = data.photoURL;
+                    userName.textContent = data.displayName;
+                    
+                    // ★モーダルの入力欄にも現在の値をセットしておく
+                    profileNameInput.value = data.displayName;
+                    profileIconInput.value = data.photoURL;
+                }
+            });
+        }
 
-        // --- 2. メッセージ送信処理 ---
+
+        // --- 2. メッセージ送信処理 (変更) ---
         
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const text = messageInput.value.trim();
             
-            if (text === '' || !currentUser) {
-                return;
-            }
+            if (text === '' || !currentUser) return;
 
             try {
+                // ★保存するのは senderId (自分のID) だけ
                 await addDoc(collection(db, "messages"), {
                     text: text,
-                    senderName: currentUser.displayName,
-                    senderIcon: currentUser.photoURL,
+                    senderId: currentUser.uid, // 名前やアイコンの代わりにIDを保存
                     timestamp: serverTimestamp() 
                 });
-                
                 messageInput.value = '';
-                
             } catch (error) {
                 console.error("メッセージ送信エラー:", error);
             }
         });
 
-        // --- 3. メッセージ受信処理 ---
+        // --- 3. メッセージ受信処理 (大幅変更) ---
         
-        function loadMessages() {
-            const q = query(collection(db, "messages"), orderBy("timestamp"));
-
-            onSnapshot(q, (querySnapshot) => {
-                messageList.innerHTML = ''; 
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    displayMessage(data.senderName, data.senderIcon, data.text);
+        // ★まず、全ユーザーの名簿(users)の変更を監視
+        function listenToUsers() {
+            const usersRef = collection(db, "users");
+            onSnapshot(usersRef, (snapshot) => {
+                snapshot.docs.forEach(doc => {
+                    // ユーザーIDをキーとして、情報をマップに保存
+                    usersMap[doc.id] = doc.data();
                 });
-                
-                messageList.scrollTop = messageList.scrollHeight;
+                // ユーザー情報が更新されたら、表示中の全メッセージを再描画
+                renderAllMessages(); 
             });
         }
+        
+        // ★次に、メッセージ(messages)の変更を監視
+        function listenToMessages() {
+            const q = query(collection(db, "messages"), orderBy("timestamp"));
+            onSnapshot(q, (querySnapshot) => {
+                // メッセージリストを更新
+                currentMessages = querySnapshot.docs.map(doc => doc.data());
+                // メッセージが更新されたら、全メッセージを再描画
+                renderAllMessages();
+            });
+        }
+        
+        // ★メッセージリストを画面に描画する専門の関数
+        function renderAllMessages() {
+            messageList.innerHTML = ''; // 既存のメッセージをクリア
+            
+            currentMessages.forEach(msg => {
+                // usersMap から送信者ID(msg.senderId)を使ってプロフィール情報を取得
+                const senderInfo = usersMap[msg.senderId] || { displayName: '不明なユーザー', photoURL: '' };
+                
+                // メッセージを画面に表示
+                displayMessage(senderInfo.displayName, senderInfo.photoURL, msg.text);
+            });
+            
+            // 常に一番下にスクロール
+            messageList.scrollTop = messageList.scrollHeight;
+        }
 
-        // --- 4. メッセージ表示ヘルパー ---
+        // --- 4. メッセージ表示ヘルパー (変更なし) ---
         
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
             
-            // テキストがnullやundefinedでないことを確認
             const safeText = text || '';
-
-            // 簡易的なサニタイズ (HTMLタグをエスケープ)
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const safeIcon = icon || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1透明gif
 
             msgDiv.innerHTML = `
-                <img src="${icon}" class="message-icon" alt="${name}">
+                <img src="${safeIcon}" class="message-icon" alt="${name}">
                 <div class="message-content">
                     <div class="message-sender">${name}</div>
                     <div class="message-text">${escapedText}</div>
@@ -285,6 +447,47 @@
             `;
             messageList.appendChild(msgDiv);
         }
+        
+        // --- 5. ★プロフィール編集モーダルの処理★ ---
+        
+        // 設定ボタン (⚙️) が押されたらモーダルを表示
+        settingsBtn.addEventListener('click', () => {
+            profileModalOverlay.classList.remove('hidden');
+        });
+        
+        // キャンセルボタンが押されたらモーダルを隠す
+        profileCancelBtn.addEventListener('click', () => {
+            profileModalOverlay.classList.add('hidden');
+        });
+        
+        // 保存ボタンが押されたら
+        profileSaveBtn.addEventListener('click', async () => {
+            const newName = profileNameInput.value.trim();
+            const newIcon = profileIconInput.value.trim();
+            
+            if (newName === '' || newIcon === '') {
+                alert('名前とアイコンURLの両方を入力してください。');
+                return;
+            }
+            
+            if (!currentUser) return;
+            
+            try {
+                // ★『users』コレクションの自分のドキュメントを更新
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, {
+                    displayName: newName,
+                    photoURL: newIcon
+                });
+                
+                // 保存したらモーダルを隠す
+                profileModalOverlay.classList.add('hidden');
+                
+            } catch (error) {
+                console.error("プロフィール更新エラー:", error);
+                alert("プロフィールの更新に失敗しました。");
+            }
+        });
 
     </script>
 </body>
