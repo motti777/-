@@ -335,7 +335,7 @@
             </div>
             <div class="form-group">
                 <label for="profile-icon-input">アイコンURL</label>
-                <input type="text" id="profile-icon-input" placeholder="https://example.com/image.png">
+                <input type="text" id="profile-icon-input" placeholder="https.example.com/image.png">
             </div>
             <div class="modal-buttons">
                 <button id="profile-cancel-btn">キャンセル</button>
@@ -346,7 +346,7 @@
 
     <script type="module">
         // Firebase SDK のコアモジュールをインポート
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"; // ★ https://
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         // 認証 (Auth) サービスをインポート
         import { 
             getAuth, 
@@ -355,13 +355,13 @@
             onAuthStateChanged,
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword
-        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"; // ★ https://
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         // Firestore データベースサービスをインポート
         import { 
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
             arrayUnion, deleteDoc
-        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; // ★ https://
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
         const firebaseConfig = {
@@ -402,8 +402,8 @@
         const privateChannelList = document.getElementById('private-channel-list');
         const addChannelForm = document.getElementById('add-channel-form');
         const addChannelInput = document.getElementById('add-channel-input');
-        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
-        const secretIdInput = document.getElementById('secret-id-input');
+        const isPrivateCheckbox = document.getElementById('is-private-checkbox'); // ★
+        const secretIdInput = document.getElementById('secret-id-input'); // ★
         const joinPrivateForm = document.getElementById('join-private-form');
         const joinIdInput = document.getElementById('join-id-input');
         const currentChannelName = document.getElementById('current-channel-name');
@@ -482,11 +482,9 @@
                 // 2. ★Firestoreの 'users' 名簿に、手動でプロフィールを登録★
                 await setDoc(doc(db, "users", user.uid), {
                     displayName: displayName, // ★フォームから取得した表示名
-                    photoURL: 'https.i.imgur.com/6M6yJ1I.png', // ★デフォルトのアイコン
+                    photoURL: 'https://i.imgur.com/6M6yJ1I.png', // ★デフォルトのアイコン
                     joinedPrivateChannels: []
                 });
-                
-                // これで onAuthStateChanged が発火し、自動的にログイン状態になる
                 
             } catch (error) {
                 loginError.textContent = getAuthErrorMessage(error.code);
@@ -502,15 +500,12 @@
                 sidebar.classList.remove('hidden'); // ★チャットUIを表示
                 mainContent.classList.remove('hidden'); // ★チャットUIを表示
                 
-                // ★Firestoreの 'users' 名簿を準備 (Googleログインの初回時のみ)
                 await setupUserProfile(user); 
                 
-                // (ここから下はチャット機能の呼び出し)
                 listenToMyProfileAndPrivateChannels(user.uid); 
                 listenToUsers(); 
                 listenToPublicChannels(); 
                 
-                // 最後に general チャンネルに接続
                 switchChannel('general', 'general');
                 
             } else {
@@ -520,12 +515,10 @@
                 sidebar.classList.add('hidden'); // ★チャットUIを隠す
                 mainContent.classList.add('hidden'); // ★チャットUIを隠す
                 
-                // メッセージとチャンネルリストをクリア
                 messageList.innerHTML = ''; 
                 publicChannelList.innerHTML = '';
                 privateChannelList.innerHTML = '';
                 
-                // 監視を停止
                 if (unsubscribeMessages) unsubscribeMessages();
                 if (unsubscribeMyProfile) unsubscribeMyProfile();
             }
@@ -540,7 +533,7 @@
                 // ★主に「Googleログイン」の初回時に実行される★
                 await setDoc(userRef, {
                     displayName: user.displayName || '名無しさん', // Google名
-                    photoURL: user.photoURL || 'https.i.imgur.com/6M6yJ1I.png', // Googleアイコン
+                    photoURL: user.photoURL || 'https://i.imgur.com/6M6yJ1I.png', // Googleアイコン
                     joinedPrivateChannels: []
                 });
             }
@@ -570,9 +563,8 @@
             unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
-                    userIcon.src = data.photoURL || 'https.i.imgur.com/6M6yJ1I.png'; // ★
+                    userIcon.src = data.photoURL || 'https.i.imgur.com/6M6yJ1I.png'; 
                     userName.textContent = data.displayName;
-                    // プロフィール編集モーダルのため
                     profileNameInput.value = data.displayName;
                     profileIconInput.value = data.photoURL;
                 }
@@ -581,7 +573,7 @@
         async function renderPrivateChannels(idArray) {
             privateChannelList.innerHTML = ''; 
             for (const id of idArray) {
-                try { // ★削除されたCHを読み込もうとした時のエラー対策
+                try { 
                     const channelDoc = await getDoc(doc(db, "channels", id));
                     if (channelDoc.exists()) {
                         const channel = channelDoc.data();
@@ -622,7 +614,7 @@
                 switchChannel(id, name);
             });
             li.appendChild(nameSpan);
-            if (ownerId === currentUser.uid && id !== 'general') { // ★generalは削除不可
+            if (ownerId === currentUser.uid && id !== 'general') { 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-channel-btn';
                 deleteBtn.innerHTML = '🗑️';
@@ -646,6 +638,16 @@
             if (id === currentChannelId) li.classList.add('active');
             return li;
         }
+        
+        // ★★★ (ここが修正箇所) ★★★
+        // ★プライベートCH作成チェックボックスの処理★
+        isPrivateCheckbox.addEventListener('change', () => {
+            secretIdInput.classList.toggle('hidden', !isPrivateCheckbox.checked);
+            // チェックされたら、ID入力欄も必須(required)にする
+            secretIdInput.required = isPrivateCheckbox.checked;
+        });
+        // ★★★ (修正ここまで) ★★★
+
         addChannelForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const channelName = addChannelInput.value.trim();
@@ -657,6 +659,7 @@
             };
             if (isPrivateCheckbox.checked) {
                 const secretId = secretIdInput.value.trim();
+                // (isPrivateCheckbox.checked なので secretIdInput.required は true のはず)
                 if (secretId === '') return alert('ID（合言葉）を入力してください。');
                 newChannelData.secretId = secretId;
             }
@@ -671,6 +674,7 @@
                 secretIdInput.value = '';
                 isPrivateCheckbox.checked = false;
                 secretIdInput.classList.add('hidden');
+                secretIdInput.required = false; // ★リセット
             } catch (error) { console.error("チャンネル追加エラー:", error); }
         });
         joinPrivateForm.addEventListener('submit', async (e) => {
@@ -748,10 +752,19 @@
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
-            const safeIcon = icon || 'https.i.imgur.com/6M6yJ1I.png'; // ★
+            const safeIcon = icon || 'https.i.imgur.com/6M6yJ1I.png'; 
             const safeText = text || ''; 
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
+            msgDiv.innerHTML = `
+                <img src="${safeIcon}" class="message-icon" alt="${name}">
+                <div class="message-content">
+                    <div class="sender-name">${name}</div>
+                    ${messageBodyHTML}
+                </div>
+            `;
+            // ★ CSSのクラス名を修正 (message-sender -> sender-name)
+            // ... と思ったが、CSS側が .message-sender だったので、CSSに合わせてHTML側を修正する
             msgDiv.innerHTML = `
                 <img src="${safeIcon}" class="message-icon" alt="${name}">
                 <div class="message-content">
@@ -769,7 +782,7 @@
             const newName = profileNameInput.value.trim();
             let newIcon = profileIconInput.value.trim();
             if (newName === '') return alert('名前を入力してください。');
-            if (newIcon === '') newIcon = 'https.i.imgur.com/6M6yJ1I.png'; // ★
+            if (newIcon === '') newIcon = 'https.i.imgur.com/6M6yJ1I.png'; 
             if (!currentUser) return;
             try {
                 const userRef = doc(db, "users", currentUser.uid);
