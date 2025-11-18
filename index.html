@@ -124,7 +124,6 @@
             padding: 10px;
         }
         
-        /* ★★★ (ここが修正箇所) ★★★ */
         /* ★チャンネル見出し (開閉機能)★ */
         #channel-list-container h3 {
             margin: 10px 5px 5px;
@@ -149,10 +148,7 @@
         #channel-list-container h3.collapsed::before {
             content: '►';
         }
-        /* ★閉じている時のリスト (JSで .hidden をトグルする)★ */
-        /* .channel-list.hidden は、一番下の汎用クラス .hidden で定義済み */
-        /* ★★★ (修正ここまで) ★★★ */
-
+        
         .channel-list {
             list-style: none;
             padding: 0;
@@ -583,23 +579,17 @@
 
         // --- 2. チャンネル処理 ---
         
-        // ★★★ (ここが修正箇所) ★★★
         // ★チャンネルリストの開閉（アコーディオン）機能★
         const channelHeaders = document.querySelectorAll('#channel-list-container h3');
         channelHeaders.forEach(header => {
             header.addEventListener('click', () => {
-                // ヘッダーに 'collapsed' クラスをトグル
                 header.classList.toggle('collapsed');
-                
-                // 次の兄弟要素 (ul.channel-list) を取得
                 const list = header.nextElementSibling;
                 if (list && list.classList.contains('channel-list')) {
-                    // ul の表示/非表示を切り替え
                     list.classList.toggle('hidden');
                 }
             });
         });
-        // ★★★ (修正ここまで) ★★★
 
         function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
@@ -626,26 +616,42 @@
                 } catch(e) { console.warn("読み込めないチャンネルがあります:", id); }
             }
         }
+        
+        // ★★★ (ここが修正箇所 1/2) ★★★
+        // ★公開チャンネルの並び替え (orderBy) を削除し、JS側でソートする★
         function listenToPublicChannels() {
-            const q = query(collection(db, "channels"), where("secretId", "==", null), orderBy("name"));
+            // ★ orderBy("name") を削除 ★
+            const q = query(collection(db, "channels"), where("secretId", "==", null));
+            
             onSnapshot(q, (snapshot) => {
                 publicChannelList.innerHTML = ''; 
-                let channelsExist = false;
+                
+                // ★いったん配列に入れる★
+                const channels = [];
                 snapshot.forEach((doc) => {
-                    channelsExist = true;
-                    const channel = doc.data();
-                    const li = createChannelElement(doc.id, channel.name, false, channel.ownerId); 
-                    publicChannelList.appendChild(li);
+                    channels.push({ id: doc.id, data: doc.data() });
                 });
-                if (!channelsExist) {
-                    addDoc(collection(db, "channels"), { 
+
+                // ★JS側で名前順 (a-z) にソートする★
+                channels.sort((a, b) => a.data.name.localeCompare(b.data.name));
+                
+                // ★ソート済みの配列を描画する★
+                if (channels.length === 0) {
+                     addDoc(collection(db, "channels"), { 
                         name: "general", 
                         secretId: null, 
                         ownerId: "system" 
                     });
+                } else {
+                    channels.forEach((channel) => {
+                        const li = createChannelElement(channel.id, channel.data.name, false, channel.data.ownerId); 
+                        publicChannelList.appendChild(li);
+                    });
                 }
             });
         }
+        // ★★★ (修正ここまで 1/2) ★★★
+
         function createChannelElement(id, name, isPrivate, ownerId) {
             const li = document.createElement('li');
             li.className = 'channel-item';
@@ -688,7 +694,7 @@
             secretIdInput.required = isPrivateCheckbox.checked;
         });
 
-        // ★チャンネル作成フォームの処理 (★公開CHも自動選択するように修正★)
+        // ★チャンネル作成フォームの処理 (公開CHも自動選択する)
         addChannelForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const channelName = addChannelInput.value.trim();
@@ -702,14 +708,13 @@
                 const secretId = secretIdInput.value.trim();
                 if (secretId === '') {
                     alert('ID（合言葉）を入力してください。');
-                    return; // ★ここで止める
+                    return; 
                 }
                 newChannelData.secretId = secretId;
             }
             try {
                 const docRef = await addDoc(collection(db, "channels"), newChannelData);
                 
-                // ★★★ (ここが修正箇所) ★★★
                 if (newChannelData.secretId !== null) {
                     // プライベートCHの場合：自分を参加させ、切り替える
                     const userRef = doc(db, "users", currentUser.uid);
@@ -719,17 +724,16 @@
                     // ★公開CHの場合：すぐにチャンネルを切り替える★
                     switchChannel(docRef.id, newChannelData.name);
                 }
-                // ★★★ (修正ここまで) ★★★
                 
                 addChannelInput.value = '';
                 secretIdInput.value = '';
                 isPrivateCheckbox.checked = false;
                 secretIdInput.classList.add('hidden');
-                secretIdInput.required = false; // ★リセット
+                secretIdInput.required = false; 
             } catch (error) { console.error("チャンネル追加エラー:", error); }
         });
         
-        // IDで参加するフォーム (変更なし)
+        // IDで参加するフォーム
         joinPrivateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const secretId = joinIdInput.value.trim();
@@ -747,7 +751,7 @@
             }
         });
         
-        // チャンネル切り替え (変更なし)
+        // チャンネル切り替え
         function switchChannel(channelId, channelName) {
             if (unsubscribeMessages) unsubscribeMessages();
             currentChannelId = channelId; 
@@ -783,17 +787,30 @@
                 renderAllMessages(); 
             });
         }
+        
+        // ★★★ (ここが修正箇所 2/2) ★★★
+        // ★メッセージの並び替え (orderBy) を削除し、JS側でソートする★
         function listenToMessages(channelId) {
+            // ★ orderBy("timestamp") を削除 ★
             const q = query(
                 collection(db, "messages"), 
-                where("channelId", "==", channelId),
-                orderBy("timestamp")
+                where("channelId", "==", channelId)
             );
             unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
                 currentMessages = querySnapshot.docs.map(doc => doc.data());
+                
+                // ★JS側で時間順 (古い→新しい) にソートする★
+                currentMessages.sort((a, b) => {
+                    const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+                    const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+                    return timeA - timeB;
+                });
+                
                 renderAllMessages();
             });
         }
+        // ★★★ (修正ここまで 2/2) ★★★
+
         function renderAllMessages() {
             messageList.innerHTML = ''; 
             currentMessages.forEach(msgData => { 
@@ -803,7 +820,7 @@
             messageList.scrollTop = messageList.scrollHeight;
         }
 
-        // --- 4. メッセージ表示ヘルパー (★バグ修正★) ---
+        // --- 4. メッセージ表示ヘルパー ---
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
@@ -812,7 +829,6 @@
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
             
-            // ★ CSS(.message-sender)に合わせて修正 ★
             msgDiv.innerHTML = `
                 <img src="${safeIcon}" class="message-icon" alt="${name}">
                 <div class="message-content">
