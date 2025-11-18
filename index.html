@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイムチャット (プロフィール変更対応)</title>
+    <title>リアルタイムチャット (チャンネル機能付き)</title>
     
     <style>
         body {
@@ -18,185 +18,165 @@
 
         /* ログイン画面 */
         #login-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
         }
         #login-box {
-            background: #2f3136;
-            padding: 40px;
-            border-radius: 8px;
-            text-align: center;
+            background: #2f3136; padding: 40px; border-radius: 8px; text-align: center;
         }
         #login-btn {
-            background: #5865f2;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1.2em;
-            border-radius: 5px;
-            cursor: pointer;
+            background: #5865f2; color: white; border: none;
+            padding: 10px 20px; font-size: 1.2em; border-radius: 5px; cursor: pointer;
         }
 
-        /* メインレイアウト */
+        /* サイドバー */
         #sidebar {
             width: 240px;
             background: #2f3136;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            padding: 10px;
         }
-        #sidebar-header {
-            padding: 10px;
-            border-bottom: 1px solid #40444b;
-        }
-        #user-info {
-            display: flex;
-            align-items: center;
-            margin-top: auto;
-            padding: 10px;
-        }
-        #user-info img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        /* ★設定ボタン★ */
-        #settings-btn {
-            background: none;
-            border: none;
-            color: #b9bbbe;
-            font-size: 1.2em;
-            cursor: pointer;
-            margin-left: auto;
-            padding: 5px;
-        }
-        #settings-btn:hover {
-            color: #fff;
-        }
-
-        #main-content {
+        /* チャンネルリスト */
+        #channel-list-container {
             flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        #channel-list-container h3 {
+            margin: 10px 5px 5px;
+            color: #8e9297;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+        .channel-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .channel-item {
+            padding: 8px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #8e9297;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .channel-item:hover {
+            background: #3a3c43;
+            color: #dcddde;
+        }
+        .channel-item.active {
+            background: #40444b;
+            color: #ffffff;
+        }
+        .channel-item .lock-icon {
+            margin-right: 5px;
+            color: #b9bbbe;
+        }
+        
+        /* ★チャンネル参加/作成フォーム★ */
+        .sidebar-form-container {
+            padding: 10px;
+            border-top: 1px solid #40444b;
+        }
+        .sidebar-form {
             display: flex;
             flex-direction: column;
-            background: #36393f;
+            gap: 8px;
+        }
+        .sidebar-form input[type="text"] {
+            background: #202225;
+            border: none;
+            color: #dcddde;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .sidebar-form button {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        /* ★プライベートCH作成のチェックボックス★ */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            color: #b9bbbe;
+        }
+
+        /* ユーザー情報 (サイドバー下部) */
+        #user-info-bar {
+            background: #292b2f; padding: 10px; display: flex;
+            align-items: center; flex-shrink: 0;
+        }
+        #user-info-bar img {
+            width: 32px; height: 32px; border-radius: 50%; margin-right: 10px;
+        }
+        #user-info-bar span {
+            font-size: 0.9em; font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;
+        }
+        #settings-btn {
+            background: none; border: none; color: #b9bbbe;
+            font-size: 1.2em; cursor: pointer; margin-left: auto; padding: 5px; flex-shrink: 0;
+        }
+        #settings-btn:hover { color: #fff; }
+
+        /* メインコンテンツ */
+        #main-content {
+            flex-grow: 1; display: flex; flex-direction: column; background: #36393f;
+        }
+        #main-header {
+            padding: 20px; border-bottom: 1px solid #40444b;
+            box-shadow: 0 1px 0 rgba(0,0,0,.2); font-size: 1.2em;
+            font-weight: bold; color: #fff;
         }
 
         /* チャットエリア */
         #message-list {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
+            flex-grow: 1; padding: 20px; overflow-y: auto;
         }
-        .message {
-            margin-bottom: 15px;
-            display: flex;
-        }
-        .message-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-        .message-content {
-            padding-top: 5px;
-        }
-        .message-sender {
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 5px;
-        }
-        .message-text {
-            line-height: 1.4;
-            color: #dcddde;
-        }
+        .message { margin-bottom: 15px; display: flex; }
+        .message-icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+        .message-content { padding-top: 5px; }
+        .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; }
+        .message-text { line-height: 1.4; color: #dcddde; }
 
         /* 送信フォーム */
         #message-form {
-            display: flex;
-            padding: 20px;
-            background: #40444b;
+            display: flex; padding: 20px; background: #40444b;
         }
         #message-input {
-            flex-grow: 1;
-            background: #484c52;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            color: #dcddde;
-            font-size: 1em;
-            outline: none;
+            flex-grow: 1; background: #484c52; border: none;
+            border-radius: 8px; padding: 10px 15px;
+            color: #dcddde; font-size: 1em; outline: none;
         }
         
-        /* ★プロフィール編集モーダル★ */
+        /* プロフィール編集モーダル (CSSは変更なし) */
         #profile-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
         }
-        #profile-modal {
-            background: #2f3136;
-            padding: 30px;
-            border-radius: 8px;
-            width: 400px;
-        }
-        #profile-modal h2 {
-            margin-top: 0;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #b9bbbe;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            background: #202225;
-            border: 1px solid #40444b;
-            color: #dcddde;
-            border-radius: 5px;
-            box-sizing: border-box; /* 幅がはみ出ないように */
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-        .modal-buttons button {
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        #profile-cancel-btn {
-            background: #747f8d;
-            color: white;
-        }
-        #profile-save-btn {
-            background: #5865f2;
-            color: white;
-        }
+        #profile-modal { background: #2f3136; padding: 30px; border-radius: 8px; width: 400px; }
+        #profile-modal h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #b9bbbe; }
+        .form-group input { width: 100%; padding: 10px; background: #202225; border: 1px solid #40444b; color: #dcddde; border-radius: 5px; box-sizing: border-box; }
+        .modal-buttons { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .modal-buttons button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-left: 10px; }
+        #profile-cancel-btn { background: #747f8d; color: white; }
+        #profile-save-btn { background: #5865f2; color: white; }
         
-        /* 隠すための汎用クラス */
-        .hidden {
-            display: none !important;
-        }
-
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -209,10 +189,36 @@
     </div>
 
     <div id="sidebar">
-        <div id="sidebar-header">
-            <h3># 一般チャネル</h3>
+        <div id="channel-list-container">
+            <h3>公開チャンネル</h3>
+            <ul id="public-channel-list" class="channel-list">
+                </ul>
+            
+            <h3>プライベートチャンネル</h3>
+            <ul id="private-channel-list" class="channel-list">
+                </ul>
         </div>
-        <div id="user-info" class="hidden">
+        
+        <div class="sidebar-form-container">
+            <form id="join-private-form" class="sidebar-form">
+                <input type="text" id="join-id-input" placeholder="参加ID（合言葉）" autocomplete="off" required>
+                <button type="submit">IDでチャンネルに参加</button>
+            </form>
+            
+            <hr style="border-color: #40444b; margin: 15px 0;">
+            
+            <form id="add-channel-form" class="sidebar-form">
+                <input type="text" id="add-channel-input" placeholder="新しいチャンネル名" autocomplete="off" required>
+                <input type="text" id="secret-id-input" placeholder="ID（合言葉）を設定" autocomplete="off" class="hidden">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="is-private-checkbox">
+                    <label for="is-private-checkbox" style="margin-left: 5px;">ID付き（非公開）にする</label>
+                </div>
+                <button type="submit">チャンネル作成</button>
+            </form>
+        </div>
+        
+        <div id="user-info-bar" class="hidden">
             <img id="user-icon" src="" alt="icon">
             <span id="user-name"></span>
             <button id="settings-btn" title="プロフィール設定">⚙️</button>
@@ -220,9 +226,11 @@
     </div>
 
     <div id="main-content">
-        <div id="message-list">
-            </div>
-
+        <div id="main-header">
+            #
+            <span id="current-channel-name">general</span>
+        </div>
+        <div id="message-list"></div>
         <form id="message-form">
             <input type="text" id="message-input" placeholder="メッセージを送信..." autocomplete="off">
         </form>
@@ -254,7 +262,8 @@
         // Firestore データベースサービスをインポート
         import { 
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
-            serverTimestamp, doc, setDoc, updateDoc, getDoc 
+            serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
+            arrayUnion // ★配列に要素を追加する
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
@@ -268,7 +277,6 @@
         };
         // ★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
-
         // Firebase アプリを初期化
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -277,34 +285,45 @@
         // DOM要素の取得
         const loginOverlay = document.getElementById('login-overlay');
         const loginBtn = document.getElementById('login-btn');
-        const userInfo = document.getElementById('user-info');
+        const userInfoBar = document.getElementById('user-info-bar');
         const userIcon = document.getElementById('user-icon');
         const userName = document.getElementById('user-name');
         const messageList = document.getElementById('message-list');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         
-        // ★プロフィール編集モーダル関連のDOM
+        // プロフィール編集モーダル関連
         const settingsBtn = document.getElementById('settings-btn');
         const profileModalOverlay = document.getElementById('profile-modal-overlay');
         const profileNameInput = document.getElementById('profile-name-input');
         const profileIconInput = document.getElementById('profile-icon-input');
         const profileCancelBtn = document.getElementById('profile-cancel-btn');
         const profileSaveBtn = document.getElementById('profile-save-btn');
+        
+        // ★チャンネル関連のDOM
+        const publicChannelList = document.getElementById('public-channel-list');
+        const privateChannelList = document.getElementById('private-channel-list');
+        const addChannelForm = document.getElementById('add-channel-form');
+        const addChannelInput = document.getElementById('add-channel-input');
+        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
+        const secretIdInput = document.getElementById('secret-id-input');
+        const joinPrivateForm = document.getElementById('join-private-form');
+        const joinIdInput = document.getElementById('join-id-input');
+        const currentChannelName = document.getElementById('current-channel-name');
 
         let currentUser = null;
-        let usersMap = {}; // ユーザーIDとプロフィール情報を紐付けるマップ
-        let currentMessages = []; // 表示中のメッセージリスト
+        let usersMap = {}; 
+        let currentMessages = [];
         
+        let currentChannelId = 'general'; // デフォルト
+        let unsubscribeMessages = null; // メッセージ監視の停止用
+        let unsubscribeMyProfile = null; // 自分のプロファイル監視の停止用
+
         // --- 1. 認証 (ログイン) 処理 ---
         
         loginBtn.addEventListener('click', async () => {
             const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("ログインエラー:", error);
-            }
+            try { await signInWithPopup(auth, provider); } catch (error) { console.error("ログインエラー:", error); }
         });
 
         onAuthStateChanged(auth, async (user) => {
@@ -313,118 +332,274 @@
                 currentUser = user;
                 loginOverlay.classList.add('hidden'); 
                 
-                // ★『users』コレクション（名簿）に情報を登録・更新
-                await setupUserProfile(user);
+                await setupUserProfile(user); // ユーザー名簿(users)を準備
                 
-                // ★自分のプロフィール情報を監視し、サイドバーに反映
-                listenToMyProfile(user.uid);
-
-                userInfo.classList.remove('hidden'); // ユーザー情報を表示
+                // ★自分のプロフィールと、参加中プライベートCHを監視
+                listenToMyProfileAndPrivateChannels(user.uid); 
                 
-                // ★チャットの監視を開始
-                listenToUsers(); // まず全ユーザーの名簿を監視
-                listenToMessages(); // 次にメッセージを監視
+                userInfoBar.classList.remove('hidden'); // ユーザー情報バーを表示
+                
+                listenToUsers(); // 全ユーザーの名簿を監視
+                listenToPublicChannels(); // ★公開チャンネル一覧を監視
+                switchChannel('general', 'general'); // ★デフォルトのgeneralに接続
                 
             } else {
                 // ログアウト状態
                 currentUser = null;
                 loginOverlay.classList.remove('hidden'); 
-                userInfo.classList.add('hidden'); // ユーザー情報を隠す
-                messageList.innerHTML = ''; // メッセージをクリア
+                userInfoBar.classList.add('hidden'); 
+                messageList.innerHTML = ''; 
+                publicChannelList.innerHTML = '';
+                privateChannelList.innerHTML = '';
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeMyProfile) unsubscribeMyProfile();
             }
         });
         
-        // ★ログイン時にユーザー名簿(users)を準備する関数
+        // ★ユーザー名簿(users)を準備 (参加CHリストを追加)
         async function setupUserProfile(user) {
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
-            
             if (!userDoc.exists()) {
-                // 名簿にまだ登録されていなければ、Googleの情報を初期値として登録
                 await setDoc(userRef, {
                     displayName: user.displayName,
-                    photoURL: user.photoURL
+                    photoURL: user.photoURL,
+                    joinedPrivateChannels: [] // ★参加済みCHのIDを保存する配列
                 });
             }
         }
         
-        // ★自分のプロフィール情報を監視し、サイドバーに反映する関数
-        function listenToMyProfile(uid) {
+        // ★自分のプロフィールと、参加中プライベートCHを監視
+        function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
-            onSnapshot(userRef, (doc) => {
+            // 監視を停止できるように
+            unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
+                    // サイドバー下部に自分の情報を表示
                     userIcon.src = data.photoURL;
                     userName.textContent = data.displayName;
-                    
-                    // ★モーダルの入力欄にも現在の値をセットしておく
+                    // プロフィール編集モーダルにも値をセット
                     profileNameInput.value = data.displayName;
                     profileIconInput.value = data.photoURL;
+                    
+                    // ★参加中のプライベートCHを描画
+                    renderPrivateChannels(data.joinedPrivateChannels || []);
                 }
             });
         }
-
-
-        // --- 2. メッセージ送信処理 (変更) ---
         
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            const text = messageInput.value.trim();
-            
-            if (text === '' || !currentUser) return;
-
-            try {
-                // ★保存するのは senderId (自分のID) だけ
-                await addDoc(collection(db, "messages"), {
-                    text: text,
-                    senderId: currentUser.uid, // 名前やアイコンの代わりにIDを保存
-                    timestamp: serverTimestamp() 
-                });
-                messageInput.value = '';
-            } catch (error) {
-                console.error("メッセージ送信エラー:", error);
+        // ★プライベートCHリストを描画する
+        async function renderPrivateChannels(idArray) {
+            privateChannelList.innerHTML = ''; // いったんクリア
+            for (const id of idArray) {
+                const channelDoc = await getDoc(doc(db, "channels", id));
+                if (channelDoc.exists()) {
+                    const channel = channelDoc.data();
+                    const li = createChannelElement(channelDoc.id, channel.name, true); // 🔒付きで作成
+                    privateChannelList.appendChild(li);
+                }
             }
-        });
+        }
 
-        // --- 3. メッセージ受信処理 (大幅変更) ---
+        // --- 2. チャンネル処理 ---
         
-        // ★まず、全ユーザーの名簿(users)の変更を監視
-        function listenToUsers() {
-            const usersRef = collection(db, "users");
-            onSnapshot(usersRef, (snapshot) => {
-                snapshot.docs.forEach(doc => {
-                    // ユーザーIDをキーとして、情報をマップに保存
-                    usersMap[doc.id] = doc.data();
+        // ★公開チャンネル(public)を監視する
+        function listenToPublicChannels() {
+            // ★secretId が null (設定なし) のものだけをクエリ
+            const q = query(collection(db, "channels"), where("secretId", "==", null), orderBy("name"));
+            
+            onSnapshot(q, (snapshot) => {
+                publicChannelList.innerHTML = ''; // クリア
+                let channelsExist = false;
+
+                snapshot.forEach((doc) => {
+                    channelsExist = true;
+                    const channel = doc.data();
+                    const li = createChannelElement(doc.id, channel.name, false); // 🔒なしで作成
+                    publicChannelList.appendChild(li);
                 });
-                // ユーザー情報が更新されたら、表示中の全メッセージを再描画
-                renderAllMessages(); 
+                
+                // ★もし公開CHが一つも無ければ、'general' を自動作成
+                if (!channelsExist) {
+                    addDoc(collection(db, "channels"), { name: "general", secretId: null });
+                }
             });
         }
         
-        // ★次に、メッセージ(messages)の変更を監視
-        function listenToMessages() {
-            const q = query(collection(db, "messages"), orderBy("timestamp"));
-            onSnapshot(q, (querySnapshot) => {
-                // メッセージリストを更新
+        // ★チャンネルリストのHTML要素を作成する共通関数
+        function createChannelElement(id, name, isPrivate) {
+            const li = document.createElement('li');
+            li.className = 'channel-item';
+            li.dataset.id = id; // HTML要素にIDを保存
+            
+            let namePrefix = '# ';
+            if (isPrivate) {
+                namePrefix = '<span class="lock-icon">🔒</span> ';
+            }
+            li.innerHTML = `${namePrefix} ${name}`;
+            
+            if (id === currentChannelId) {
+                li.classList.add('active');
+            }
+            
+            // ★チャンネルがクリックされた時の処理
+            li.addEventListener('click', () => {
+                switchChannel(id, name);
+            });
+            return li;
+        }
+        
+        // ★プライベートCH作成チェックボックスの処理
+        isPrivateCheckbox.addEventListener('change', () => {
+            secretIdInput.classList.toggle('hidden', !isPrivateCheckbox.checked);
+            if (isPrivateCheckbox.checked) {
+                secretIdInput.required = true;
+            } else {
+                secretIdInput.required = false;
+            }
+        });
+
+        // ★チャンネル「作成」フォームの処理
+        addChannelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const channelName = addChannelInput.value.trim();
+            if (channelName === '' || !currentUser) return;
+            
+            const newChannelData = {
+                name: channelName,
+                secretId: null // デフォルトは public (null)
+            };
+            
+            if (isPrivateCheckbox.checked) {
+                // ★プライベートCHの場合
+                const secretId = secretIdInput.value.trim();
+                if (secretId === '') {
+                    alert('ID（合言葉）を入力してください。');
+                    return;
+                }
+                newChannelData.secretId = secretId;
+            }
+            
+            try {
+                // "channels" コレクションに新しいチャンネルを追加
+                const docRef = await addDoc(collection(db, "channels"), newChannelData);
+                
+                // ★もしプライベートCHを作成したら、自分も自動で参加する
+                if (newChannelData.secretId !== null) {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    await updateDoc(userRef, {
+                        joinedPrivateChannels: arrayUnion(docRef.id)
+                    });
+                    // 新しく作ったCHに自動で切り替え
+                    switchChannel(docRef.id, newChannelData.name);
+                }
+
+                addChannelInput.value = '';
+                secretIdInput.value = '';
+                isPrivateCheckbox.checked = false;
+                secretIdInput.classList.add('hidden');
+
+            } catch (error) {
+                console.error("チャンネル追加エラー:", error);
+            }
+        });
+        
+        // ★IDで「参加」するフォームの処理
+        joinPrivateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const secretId = joinIdInput.value.trim();
+            if (secretId === '' || !currentUser) return;
+            
+            // ★secretId (合言葉) が一致するチャンネルを検索
+            const q = query(collection(db, "channels"), where("secretId", "==", secretId));
+            const snapshot = await getDoc(q);
+            
+            if (snapshot.empty) {
+                alert('ID（合言葉）が間違っているか、チャンネルが存在しません。');
+            } else {
+                // ★見つかった (合言葉はユニーク前提)
+                const foundDoc = snapshot.docs[0];
+                const channelId = foundDoc.id;
+                
+                // 自分の名簿(users)に、このチャンネルIDを「参加済み」として追加
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, {
+                    joinedPrivateChannels: arrayUnion(channelId)
+                });
+                
+                // 参加したチャンネルに切り替え
+                switchChannel(channelId, foundDoc.data().name);
+                joinIdInput.value = '';
+            }
+        });
+        
+        // ★チャンネルを切り替える関数
+        function switchChannel(channelId, channelName) {
+            // 前のチャンネルの監視を停止
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+            }
+            
+            currentChannelId = channelId; // 現在のチャンネルIDを更新
+            currentChannelName.textContent = channelName; // ヘッダーの名前を更新
+            
+            // ★サイドバーのハイライトを更新 (両方のリストから探す)
+            document.querySelectorAll('.channel-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.id === channelId);
+            });
+            
+            // ★新しいチャンネルのメッセージ監視を開始
+            listenToMessages(channelId);
+        }
+
+        // --- 3. メッセージ送受信処理 (変更なし) ---
+        
+        // メッセージ送信 (channelId を追加)
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const text = messageInput.value.trim();
+            if (text === '' || !currentUser) return;
+            try {
+                await addDoc(collection(db, "messages"), {
+                    text: text,
+                    senderId: currentUser.uid, 
+                    channelId: currentChannelId, // ★どのチャンネルへの投稿かIDを記録
+                    timestamp: serverTimestamp() 
+                });
+                messageInput.value = '';
+            } catch (error) { console.error("メッセージ送信エラー:", error); }
+        });
+        
+        // 全ユーザーの名簿(users)の変更を監視
+        function listenToUsers() {
+            const usersRef = collection(db, "users");
+            onSnapshot(usersRef, (snapshot) => {
+                snapshot.docs.forEach(doc => { usersMap[doc.id] = doc.data(); });
+                renderAllMessages(); // ユーザー情報が更新されたら再描画
+            });
+        }
+        
+        // メッセージ(messages)の変更を監視 (channelId で絞り込む)
+        function listenToMessages(channelId) {
+            const q = query(
+                collection(db, "messages"), 
+                where("channelId", "==", channelId),
+                orderBy("timestamp")
+            );
+            unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
                 currentMessages = querySnapshot.docs.map(doc => doc.data());
-                // メッセージが更新されたら、全メッセージを再描画
                 renderAllMessages();
             });
         }
         
-        // ★メッセージリストを画面に描画する専門の関数
+        // メッセージリストを画面に描画する
         function renderAllMessages() {
-            messageList.innerHTML = ''; // 既存のメッセージをクリア
-            
+            messageList.innerHTML = ''; 
             currentMessages.forEach(msg => {
-                // usersMap から送信者ID(msg.senderId)を使ってプロフィール情報を取得
                 const senderInfo = usersMap[msg.senderId] || { displayName: '不明なユーザー', photoURL: '' };
-                
-                // メッセージを画面に表示
                 displayMessage(senderInfo.displayName, senderInfo.photoURL, msg.text);
             });
-            
-            // 常に一番下にスクロール
             messageList.scrollTop = messageList.scrollHeight;
         }
 
@@ -433,11 +608,9 @@
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
-            
             const safeText = text || '';
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const safeIcon = icon || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1透明gif
-
+            const safeIcon = icon || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
             msgDiv.innerHTML = `
                 <img src="${safeIcon}" class="message-icon" alt="${name}">
                 <div class="message-content">
@@ -448,45 +621,21 @@
             messageList.appendChild(msgDiv);
         }
         
-        // --- 5. ★プロフィール編集モーダルの処理★ ---
+        // --- 5. プロフィール編集モーダルの処理 (変更なし) ---
         
-        // 設定ボタン (⚙️) が押されたらモーダルを表示
-        settingsBtn.addEventListener('click', () => {
-            profileModalOverlay.classList.remove('hidden');
-        });
+        settingsBtn.addEventListener('click', () => { profileModalOverlay.classList.remove('hidden'); });
+        profileCancelBtn.addEventListener('click', () => { profileModalOverlay.classList.add('hidden'); });
         
-        // キャンセルボタンが押されたらモーダルを隠す
-        profileCancelBtn.addEventListener('click', () => {
-            profileModalOverlay.classList.add('hidden');
-        });
-        
-        // 保存ボタンが押されたら
         profileSaveBtn.addEventListener('click', async () => {
             const newName = profileNameInput.value.trim();
             const newIcon = profileIconInput.value.trim();
-            
-            if (newName === '' || newIcon === '') {
-                alert('名前とアイコンURLの両方を入力してください。');
-                return;
-            }
-            
+            if (newName === '' || newIcon === '') return alert('名前とアイコンURLを入力してください。');
             if (!currentUser) return;
-            
             try {
-                // ★『users』コレクションの自分のドキュメントを更新
                 const userRef = doc(db, "users", currentUser.uid);
-                await updateDoc(userRef, {
-                    displayName: newName,
-                    photoURL: newIcon
-                });
-                
-                // 保存したらモーダルを隠す
+                await updateDoc(userRef, { displayName: newName, photoURL: newIcon });
                 profileModalOverlay.classList.add('hidden');
-                
-            } catch (error) {
-                console.error("プロフィール更新エラー:", error);
-                alert("プロフィールの更新に失敗しました。");
-            }
+            } catch (error) { console.error("プロフィール更新エラー:", error); }
         });
 
     </script>
