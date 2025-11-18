@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルタイムチャット (sexsex-90a07)</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #36393f;
+            color: #dcddde;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ログイン画面 */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #login-box {
+            background: #2f3136;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #login-btn {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* メインレイアウト */
+        #sidebar {
+            width: 240px;
+            background: #2f3136;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        #sidebar-header {
+            padding: 10px;
+            border-bottom: 1px solid #40444b;
+        }
+        #user-info {
+            display: flex;
+            align-items: center;
+            margin-top: auto;
+            padding: 10px;
+        }
+        #user-info img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: #36393f;
+        }
+
+        /* チャットエリア */
+        #message-list {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        .message-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .message-content {
+            padding-top: 5px;
+        }
+        .message-sender {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .message-text {
+            line-height: 1.4;
+            color: #dcddde; /* メッセージ本文の色を明示 */
+        }
+
+        /* 送信フォーム */
+        #message-form {
+            display: flex;
+            padding: 20px;
+            background: #40444b;
+        }
+        #message-input {
+            flex-grow: 1;
+            background: #484c52;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: #dcddde;
+            font-size: 1em;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay">
+        <div id="login-box">
+            <h2>チャットへようこそ</h2>
+            <button id="login-btn">Googleでログイン</button>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h3># 一般チャネル</h3>
+        </div>
+        <div id="user-info" style="display: none;">
+            <img id="user-icon" src="" alt="icon">
+            <span id="user-name"></span>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="message-list">
+            </div>
+
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="メッセージを送信..." autocomplete="off">
+        </form>
+    </div>
+
+    <script type="module">
+        // Firebase SDK のコアモジュールをインポート
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        // 認証 (Auth) サービスをインポート
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // Firestore データベースサービスをインポート
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
+        const firebaseConfig = {
+          apiKey: "AIzaSyAhXs223e-Shn8JfnvNC1IS4-T33mtKd-k",
+          authDomain: "sexsex-90a07.firebaseapp.com",
+          projectId: "sexsex-90a07",
+          storageBucket: "sexsex-90a07.firebasestorage.app",
+          messagingSenderId: "252347983312",
+          appId: "1:252347983312:web:89019e1ee68879839385d5"
+        };
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+
+        // Firebase アプリを初期化
+        const app = initializeApp(firebaseConfig);
+        
+        // Firebase の各サービスへの参照を取得
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // DOM要素の取得
+        const loginOverlay = document.getElementById('login-overlay');
+        const loginBtn = document.getElementById('login-btn');
+        const userInfo = document.getElementById('user-info');
+        const userIcon = document.getElementById('user-icon');
+        const userName = document.getElementById('user-name');
+        const messageList = document.getElementById('message-list');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+
+        let currentUser = null;
+
+        // --- 1. 認証 (ログイン) 処理 ---
+        
+        loginBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("ログインエラー:", error);
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // ログイン成功
+                currentUser = user;
+                loginOverlay.style.display = 'none'; 
+                
+                userIcon.src = user.photoURL;
+                userName.textContent = user.displayName;
+                userInfo.style.display = 'flex'; // ユーザー情報を表示
+                
+                loadMessages();
+                
+            } else {
+                // ログアウト状態
+                currentUser = null;
+                loginOverlay.style.display = 'flex'; 
+                userInfo.style.display = 'none'; // ユーザー情報を隠す
+                messageList.innerHTML = ''; // メッセージをクリア
+            }
+        });
+
+        // --- 2. メッセージ送信処理 ---
+        
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const text = messageInput.value.trim();
+            
+            if (text === '' || !currentUser) {
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "messages"), {
+                    text: text,
+                    senderName: currentUser.displayName,
+                    senderIcon: currentUser.photoURL,
+                    timestamp: serverTimestamp() 
+                });
+                
+                messageInput.value = '';
+                
+            } catch (error) {
+                console.error("メッセージ送信エラー:", error);
+            }
+        });
+
+        // --- 3. メッセージ受信処理 ---
+        
+        function loadMessages() {
+            const q = query(collection(db, "messages"), orderBy("timestamp"));
+
+            onSnapshot(q, (querySnapshot) => {
+                messageList.innerHTML = ''; 
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    displayMessage(data.senderName, data.senderIcon, data.text);
+                });
+                
+                messageList.scrollTop = messageList.scrollHeight;
+            });
+        }
+
+        // --- 4. メッセージ表示ヘルパー ---
+        
+        function displayMessage(name, icon, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            
+            // テキストがnullやundefinedでないことを確認
+            const safeText = text || '';
+
+            // 簡易的なサニタイズ (HTMLタグをエスケープ)
+            const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            msgDiv.innerHTML = `
+                <img src="${icon}" class="message-icon" alt="${name}">
+                <div class="message-content">
+                    <div class="message-sender">${name}</div>
+                    <div class="message-text">${escapedText}</div>
+                </div>
+            `;
+            messageList.appendChild(msgDiv);
+        }
+
+    </script>
+</body>
+</html>
