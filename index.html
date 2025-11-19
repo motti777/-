@@ -381,7 +381,8 @@
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
             arrayUnion, deleteDoc,
-            getDocs // ★インデックス不要の検索(getDocs)をインポート
+            getDocs, // ★インデックス不要の検索(getDocs)
+            arrayRemove // ★★★ (バグ修正) 配列削除(arrayRemove)をインポート ★★★
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
@@ -622,7 +623,6 @@
             });
         }
         
-        // ★★★ (バグ修正 1/2) ★★★
         // ★プライベートCHを描画する関数 (競合状態バグを修正)★
         async function renderPrivateChannels(idArray) {
             
@@ -657,7 +657,6 @@
                 }
             }
         }
-        // ★★★ (修正ここまで 1/2) ★★★
 
         
         // ★公開チャンネルの並び替え (インデックス不要版)
@@ -692,7 +691,7 @@
             });
         }
         
-        // チャンネルのHTML要素を作成 (変更なし)
+        // ★★★ (バグ修正) チャンネルのHTML要素を作成 (削除ロジック修正) ★★★
         function createChannelElement(id, name, isPrivate, ownerId) {
             const li = document.createElement('li');
             li.className = 'channel-item';
@@ -704,20 +703,40 @@
                 switchChannel(id, name);
             });
             li.appendChild(nameSpan);
+
+            // ★削除ボタンのロジック★
             if (ownerId === currentUser.uid && id !== 'general') { 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-channel-btn';
                 deleteBtn.innerHTML = '🗑️';
                 deleteBtn.title = 'チャンネルを削除';
                 deleteBtn.style.display = 'inline-block'; 
+                
                 deleteBtn.addEventListener('click', async (e) => {
                     e.stopPropagation(); 
                     if (confirm(`チャンネル「${name}」を削除しますか？`)) {
                         try {
+                            // ★ 1. データベースからチャンネルを削除 ★
                             await deleteDoc(doc(db, "channels", id));
+                            
+                            // ★ 2. もし削除したのが今いるCHなら、generalに戻る ★
                             if (id === currentChannelId) {
                                 switchChannel('general', 'general');
                             }
+                            
+                            // ★ 3. (ここが重要！) もしこれがプライベートCHなら、
+                            //    自分の参加リスト (users) からも削除する ★
+                            if (isPrivate) {
+                                const userRef = doc(db, "users", currentUser.uid);
+                                await updateDoc(userRef, {
+                                    joinedPrivateChannels: arrayRemove(id)
+                                });
+                                // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、
+                                // 自動でプライベートCHリストが更新（削除）される★
+                            }
+                            // (公開CHの場合は、listenToPublicChannels の onSnapshot が
+                            // deleteDoc を検知して自動でリストが更新される)
+                            
                         } catch (error) {
                             console.error("チャンネル削除エラー:", error);
                         }
@@ -728,6 +747,7 @@
             if (id === currentChannelId) li.classList.add('active');
             return li;
         }
+        // ★★★ (修正ここまで) ★★★
         
         // ★プライベートCH作成チェックボックスの処理★
         isPrivateCheckbox.addEventListener('change', () => {
@@ -775,7 +795,6 @@
             } catch (error) { console.error("チャンネル追加エラー:", error); }
         });
         
-        // ★★★ (バグ修正 2/2) ★★★
         // ★IDで参加するフォーム (インデックス不要版)
         joinPrivateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -815,7 +834,6 @@
                 alert("チャンネルの検索に失敗しました。");
             }
         });
-        // ★★★ (修正ここまで 2/2) ★★★
 
         
         // チャンネル切り替え
