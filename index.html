@@ -3,426 +3,943 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poptyper (チャット機能付き)</title>
+    <title>リアルタイムチャット (メール認証対応)</title>
+    
     <style>
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #36393f;
+            color: #dcddde;
             margin: 0;
-            overflow: hidden; /* スクロールバーを消す */
-        }
-        #game-container {
-            width: 800px;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        #title-screen {
-            display: block; /* 最初はタイトルを表示 */
-        }
-        #game-screen {
-            display: none; /* ゲーム画面は最初は隠す */
-            position: relative; /* ポップアップのために必要 */
-            height: 400px; /* ゲームエリアの高さを固定 */
-            overflow: hidden; /* エリア外の文字を隠す */
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fafafa;
-        }
-        h1 {
-            color: #1a73e8;
-            margin-top: 0;
-        }
-        p {
-            font-size: 1.1em;
-            line-height: 1.6;
-        }
-        button {
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1em;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #185abc;
-        }
-        #score-display {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
-        }
-        #time-display {
-            position: absolute;
-            top: 10px;
-            left: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #e63946;
-        }
-        .falling-word {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 1.2em;
-            font-weight: 500;
-            user-select: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .typed {
-            color: #e63946; /* タイプ済みの文字色 */
-            font-weight: bold;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* ★★★ (ここからチャット用のCSS) ★★★ */
-        
-        /* 画面全体を覆う暗いオーバーレイ */
-        #chat-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* ログイン画面 */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
         }
-        
-        /* iframeを囲うコンテナ */
-        #chat-iframe-container {
-            width: 90%;
-            height: 90%;
-            max-width: 1200px;
-            max-height: 800px;
-            background: #36393f; /* chat.htmlの背景色に合わせる */
+        #login-box {
+            background: #2f3136;
+            padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            width: 400px;
+            box-sizing: border-box;
+        }
+        /* タブ切り替え */
+        .login-tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .login-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid #40444b;
+            color: #8e9297;
+            font-weight: bold;
+        }
+        .login-tab.active {
+            color: #fff;
+            border-bottom-color: #5865f2;
+        }
+        /* フォーム */
+        .login-form-group {
+            margin-bottom: 15px;
+        }
+        .login-form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b9bbbe;
+            font-size: 0.9em;
+        }
+        .login-form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #202225;
+            border: 1px solid #40444b;
+            color: #dcddde;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        /* Googleログインボタン */
+        #google-login-btn {
+            background: #fff;
+            color: #747f8d;
+            font-weight: bold;
+        }
+        #google-login-btn:before {
+            content: 'G'; /* Googleアイコンの代わり */
+            color: #DB4437;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        /* 区切り線 */
+        .divider {
+            text-align: center;
+            color: #8e9297;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        /* エラーメッセージ */
+        #login-error {
+            color: #f04747;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.9em;
+            min-height: 1.2em; /* エラー表示用に高さを確保 */
+        }
+
+        /* --- ここから下はチャット画面のCSS --- */
+
+        /* サイドバー */
+        #sidebar {
+            width: 240px;
+            background: #2f3136;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* 角丸を効かせるため */
+            overflow: hidden; 
         }
-
-        /* チャットを閉じるボタン */
-        #close-chat-btn {
-            background: #747f8d;
-            color: white;
-            font-weight: bold;
-            border: none;
-            padding: 8px 15px;
+        #sidebar-scroll-container {
+            flex-grow: 1;
+            overflow-y: auto; 
+        }
+        #channel-list-container {
+            padding: 10px;
+        }
+        
+        /* ★チャンネル見出し (開閉機能)★ */
+        #channel-list-container h3 {
+            margin: 10px 5px 5px;
+            color: #8e9297;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            cursor: pointer; /* ★クリックできることを示す */
+            position: relative; /* ★矢印のため */
+            padding-left: 15px; /* ★矢印のスペース */
+        }
+        /* ★矢印のスタイル★ */
+        #channel-list-container h3::before {
+            content: '▼'; /* デフォルトは開いている矢印 */
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            transition: transform 0.2s; /* アニメーション */
+        }
+        /* ★閉じている時の矢印★ */
+        #channel-list-container h3.collapsed::before {
+            content: '►';
+        }
+        
+        .channel-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px; border-radius: 5px;
+            color: #8e9297; font-weight: 500;
+        }
+        .channel-item:hover { background: #3a3c43; color: #dcddde; }
+        .channel-item.active { background: #40444b; color: #ffffff; }
+        .channel-name {
+            flex-grow: 1;
             cursor: pointer;
-            align-self: flex-end; /* 右上に配置 */
-            margin: 10px;
-            border-radius: 5px;
-            z-index: 1002;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        #close-chat-btn:hover {
-            background: #f04747; /* ホバー時は赤く */
+        .channel-name .lock-icon { margin-right: 5px; color: #b9bbbe; }
+        .delete-channel-btn {
+            background: none; border: none; color: #b9bbbe;
+            font-size: 1.1em; cursor: pointer; padding: 0 5px;
+            margin-left: 5px; display: none; flex-shrink: 0;
         }
+        .delete-channel-btn:hover { color: #f04747; }
         
-        /* chat.html を埋め込む iframe */
-        #chat-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            flex-grow: 1; /* 残りの高さをすべて使う */
+        /* チャンネル参加/作成フォーム */
+        .sidebar-form-container {
+            padding: 10px;
+            border-top: 1px solid #40444b;
         }
-        
-        /* 隠すための汎用クラス */
-        .hidden {
-            display: none !important;
+        .sidebar-form {
+            display: flex; flex-direction: column; gap: 8px;
         }
-        /* ★★★ (チャットCSS ここまで) ★★★ */
+        .sidebar-form input[type="text"] {
+            background: #202225; border: none; color: #dcddde;
+            padding: 8px; border-radius: 3px; font-size: 0.9em;
+        }
+        .sidebar-form button {
+            background: #5865f2; color: white; border: none;
+            padding: 8px; border-radius: 3px; cursor: pointer;
+        }
+        .checkbox-group {
+            display: flex; align-items: center;
+            font-size: 0.9em; color: #b9bbbe;
+        }
 
+        /* ユーザー情報 (サイドバー下部) */
+        #user-info-bar {
+            background: #292b2f; padding: 10px; display: flex;
+            align-items: center; flex-shrink: 0;
+        }
+        #user-info-bar img {
+            width: 32px; height: 32px; border-radius: 50%; margin-right: 10px;
+        }
+        #user-info-bar span {
+            font-size: 0.9em; font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;
+        }
+        #settings-btn {
+            background: none; border: none; color: #b9bbbe;
+            font-size: 1.2em; cursor: pointer; margin-left: auto; padding: 5px; flex-shrink: 0;
+        }
+        #settings-btn:hover { color: #fff; }
+
+        /* メインコンテンツ */
+        #main-content {
+            flex-grow: 1; display: flex; flex-direction: column; background: #36393f;
+        }
+        #main-header {
+            padding: 20px; border-bottom: 1px solid #40444b;
+            box-shadow: 0 1px 0 rgba(0,0,0,.2); font-size: 1.2em;
+            font-weight: bold; color: #fff;
+        }
+
+        /* チャットエリア */
+        #message-list {
+            flex-grow: 1; padding: 20px; overflow-y: auto;
+        }
+        .message { margin-bottom: 15px; display: flex; }
+        .message-icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+        .message-content { padding-top: 5px; }
+        .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; } 
+        .message-text { line-height: 1.4; color: #dcddde; } 
+
+        /* 送信フォーム */
+        #message-form {
+            display: flex; padding: 20px; background: #40444b; align-items: center;
+        }
+        #message-input {
+            flex-grow: 1; background: #484c52; border: none;
+            border-radius: 8px; padding: 10px 15px;
+            color: #dcddde; font-size: 1em; outline: none;
+        }
+        
+        /* プロフィール編集モーダル */
+        #profile-modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        #profile-modal { background: #2f3136; padding: 30px; border-radius: 8px; width: 400px; }
+        #profile-modal h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #b9bbbe; }
+        .form-group input { width: 100%; padding: 10px; background: #202225; border: 1px solid #40444b; color: #dcddde; border-radius: 5px; box-sizing: border-box; }
+        .modal-buttons { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .modal-buttons button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-left: 10px; }
+        #profile-cancel-btn { background: #747f8d; color: white; }
+        #profile-save-btn { background: #5865f2; color: white; }
+        
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        
-        <div id="title-screen">
-            <h1>Poptyper (チャット機能付き)</h1>
-            <p>画面上から落ちてくる単語をタイプして消そう！</p>
-            <p>準備ができたら「ゲームスタート」を押してください。</p>
-            <p style="font-size: 0.9em; color: #555;">(ヒント: キーボードで「c」「h」「a」「t」と入力すると…？)</p>
-            <button id="start-button">ゲームスタート</button>
+    <div id="login-overlay">
+        <div id="login-box">
+            <div class="login-tabs">
+                <div class="login-tab active" data-tab="login">ログイン</div>
+                <div class="login-tab" data-tab="register">新規登録</div>
+            </div>
+
+            <form id="login-form">
+                <div class="login-form-group">
+                    <label for="login-email">メールアドレス</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="login-form-group">
+                    <label for="login-password">パスワード</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="login-btn">ログイン</button>
+            </form>
+            
+            <form id="register-form" class="hidden">
+                <div class="login-form-group">
+                    <label for="register-name">表示名</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                <div class="login-form-group">
+                    <label for="register-email">メールアドレス</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="login-form-group">
+                    <label for="register-password">パスワード（6文字以上）</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <button type="submit" class="login-btn">登録する</button>
+            </form>
+
+            <div class="divider">または</div>
+            
+            <button id="google-login-btn" class="login-btn">Googleでログイン</button>
+            
+            <p id="login-error"></p>
         </div>
-
-        <div id="game-screen">
-            <div id="score-display">Score: 0</div>
-            <div id="time-display">Time: 60</div>
-            </div>
-
     </div>
 
-    <div id="chat-modal-overlay" class="hidden">
-        <div id="chat-iframe-container">
-            <button id="close-chat-btn">チャットを閉じる ×</button>
-            
-            <iframe id="chat-iframe" src="https://naw0fu0a9w09.netlify.app/"></iframe>
+    <div id="sidebar" class="hidden"> <div id="sidebar-scroll-container">
+            <div id="channel-list-container">
+                <h3>公開チャンネル</h3>
+                <ul id="public-channel-list" class="channel-list"></ul>
+                <h3>プライベートチャンネル</h3>
+                <ul id="private-channel-list" class="channel-list"></ul>
             </div>
+            <div class="sidebar-form-container">
+                <form id="join-private-form" class="sidebar-form">
+                    <input type="text" id="join-id-input" placeholder="参加ID（合言葉）" autocomplete="off" required>
+                    <button type="submit">IDでチャンネルに参加</button>
+                </form>
+                <hr style="border-color: #40444b; margin: 15px 0;">
+                <form id="add-channel-form" class="sidebar-form">
+                    <input type="text" id="add-channel-input" placeholder="新しいチャンネル名" autocomplete="off" required>
+                    <input type="text" id="secret-id-input" placeholder="ID（合言葉）を設定" autocomplete="off" class="hidden">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is-private-checkbox">
+                        <label for="is-private-checkbox" style="margin-left: 5px;">ID付き（非公開）にする</label>
+                    </div>
+                    <button type="submit">チャンネル作成</button>
+                </form>
+            </div>
+        </div> 
+        <div id="user-info-bar">
+            <img id="user-icon" src="" alt="icon">
+            <span id="user-name"></span>
+            <button id="settings-btn" title="プロフィール設定">⚙️</button>
+        </div>
     </div>
-    <script>
-        // --- ゲームのDOM要素 ---
-        const titleScreen = document.getElementById('title-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const startButton = document.getElementById('start-button');
-        const scoreDisplay = document.getElementById('score-display');
-        const timeDisplay = document.getElementById('time-display');
 
-        // --- ★チャットのDOM要素 ---
-        const chatModalOverlay = document.getElementById('chat-modal-overlay');
-        const closeChatBtn = document.getElementById('close-chat-btn');
-        const chatIframe = document.getElementById('chat-iframe');
-        // 元のチャットURLを保持
-        const baseChatUrl = chatIframe.src; 
+    <div id="main-content" class="hidden"> <div id="main-header">#<span id="current-channel-name">general</span></div>
+        <div id="message-list"></div>
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="メッセージを送信..." autocomplete="off">
+        </form>
+    </div>
+    
+    <div id="profile-modal-overlay" class="hidden">
+        <div id="profile-modal">
+            <h2>プロフィールを編集</h2>
+            <div class="form-group">
+                <label for="profile-name-input">表示名</label>
+                <input type="text" id="profile-name-input">
+            </div>
+            <div class="form-group">
+                <label for="profile-icon-input">アイコンURL</label>
+                <input type="text" id="profile-icon-input" placeholder="https://example.com/image.png">
+            </div>
+            <div class="modal-buttons">
+                <button id="profile-cancel-btn">キャンセル</button>
+                <button id="profile-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
 
-        // --- ゲームの変数 ---
-        let score = 0;
-        let timeLeft = 60;
-        let gameInterval;
-        let wordInterval;
-        let fallingWords = []; // 画面上の単語を管理する配列
-        let currentWordElement = null; // 現在タイプ中の単語
-        let currentWordIndex = 0; // 現在タイプ中の文字インデックス
+    <script type="module">
+        // Firebase SDK のコアモジュールをインポート
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        // 認証 (Auth) サービスをインポート
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            onAuthStateChanged,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // Firestore データベースサービスをインポート
+        import { 
+            getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
+            serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
+            arrayUnion, deleteDoc,
+            getDocs, // ★インデックス不要の検索(getDocs)
+            arrayRemove // ★★★ (バグ修正) 配列削除(arrayRemove)をインポート ★★★
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        // 単語リスト (自由に追加・変更してください)
-        const wordList = [
-            "hello", "world", "javascript", "typing", "game", "poptyper",
-            "firebase", "chat", "realtime", "function", "style", "html",
-            "css", "developer", "coding", "awesome", "project"
-        ];
+        // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
+        const firebaseConfig = {
+          apiKey: "AIzaSyAhXs223e-Shn8JfnvNC1IS4-T33mtKd-k",
+          authDomain: "sexsex-90a07.firebaseapp.com",
+          projectId: "sexsex-90a07",
+          storageBucket: "sexsex-90a07.appspot.com",
+          messagingSenderId: "252347983312",
+          appId: "1:252347983312:web:89019e1ee68879839385d5"
+        };
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+        // Firebase アプリを初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
         
-        // --- ★チャット起動用の変数 ---
-        let keyBuffer = ""; // 入力されたキーを保持する
+        // --- 0. ★グローバル変数 と 初期アイコン★ ---
+        
+        // ★★★ (リクエスト修正) ★★★
+        // ★ご要望の「匿名の人のアイコン」のURLです★
+        const defaultIcon = 'https://i.imgur.com/B1Q1hL1.png';
+        // ★★★ (修正ここまで) ★★★
 
-        // --- ゲームロジック ---
+        // DOM要素の取得 (ログイン関連)
+        const loginOverlay = document.getElementById('login-overlay');
+        const loginTabs = document.querySelectorAll('.login-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginError = document.getElementById('login-error');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        
+        // DOM要素の取得 (チャット関連)
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const userInfoBar = document.getElementById('user-info-bar');
+        const userIcon = document.getElementById('user-icon');
+        const userName = document.getElementById('user-name');
+        const messageList = document.getElementById('message-list');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const publicChannelList = document.getElementById('public-channel-list');
+        const privateChannelList = document.getElementById('private-channel-list');
+        const addChannelForm = document.getElementById('add-channel-form');
+        const addChannelInput = document.getElementById('add-channel-input');
+        const isPrivateCheckbox = document.getElementById('is-private-checkbox');
+        const secretIdInput = document.getElementById('secret-id-input'); 
+        const joinPrivateForm = document.getElementById('join-private-form');
+        const joinIdInput = document.getElementById('join-id-input');
+        const currentChannelName = document.getElementById('current-channel-name');
+        const settingsBtn = document.getElementById('settings-btn');
+        const profileModalOverlay = document.getElementById('profile-modal-overlay');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const profileIconInput = document.getElementById('profile-icon-input');
+        const profileCancelBtn = document.getElementById('profile-cancel-btn');
+        const profileSaveBtn = document.getElementById('profile-save-btn');
+        
+        // グローバル変数
+        let currentUser = null;
+        let usersMap = {}; 
+        let currentMessages = [];
+        let currentChannelId = 'general'; 
+        let unsubscribeMessages = null; 
+        let unsubscribeMyProfile = null; 
+        
+        
+        // --- 1. 認証 (ログイン) 処理 ---
 
-        // ゲームスタート処理
-        startButton.addEventListener('click', startGame);
-
-        function startGame() {
-            titleScreen.style.display = 'none';
-            gameScreen.style.display = 'block';
-
-            score = 0;
-            timeLeft = 60;
-            scoreDisplay.textContent = `Score: 0`;
-            timeDisplay.textContent = `Time: 60`;
-            fallingWords = [];
-            gameScreen.querySelectorAll('.falling-word').forEach(word => word.remove()); // 前回の単語を消す
+        // ★ログイン/新規登録のタブ切り替え
+        loginTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                loginTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const activeTab = tab.dataset.tab;
+                loginForm.classList.toggle('hidden', activeTab !== 'login');
+                registerForm.classList.toggle('hidden', activeTab !== 'register');
+                loginError.textContent = ''; // エラーをクリア
+            });
+        });
+        
+        // ★Googleログイン
+        googleLoginBtn.addEventListener('click', async () => {
+            loginError.textContent = '';
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                loginError.textContent = getAuthErrorMessage(error.code);
+            }
+        });
+        
+        // ★メールで「ログイン」
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
             
-            // 1秒ごとにタイマーを動かす
-            gameInterval = setInterval(() => {
-                timeLeft--;
-                timeDisplay.textContent = `Time: ${timeLeft}`;
-                if (timeLeft <= 0) {
-                    endGame();
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                loginError.textContent = getAuthErrorMessage(error.code);
+            }
+        });
+        
+        // ★メールで「新規登録」 (★表示名も保存★)
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const displayName = document.getElementById('register-name').value.trim(); // ★表示名を取得★
+            
+            if (displayName === '') {
+                loginError.textContent = '表示名を入力してください。';
+                return;
+            }
+            
+            try {
+                // 1. Authサービスにユーザーを作成
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                // 2. ★Firestoreの 'users' 名簿に、手動でプロフィールを登録★
+                await setDoc(doc(db, "users", user.uid), {
+                    displayName: displayName, // ★フォームから取得した表示名
+                    photoURL: defaultIcon, // ★匿名の人のアイコン★
+                    joinedPrivateChannels: []
+                });
+                
+            } catch (error) {
+                loginError.textContent = getAuthErrorMessage(error.code);
+            }
+        });
+
+        // ★認証状態の監視 (ログイン/ログアウトを検知)
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // ログイン成功
+                currentUser = user;
+                loginOverlay.classList.add('hidden'); 
+                sidebar.classList.remove('hidden'); // ★チャットUIを表示
+                mainContent.classList.remove('hidden'); // ★チャットUIを表示
+                
+                await setupUserProfile(user); 
+                
+                listenToUsers(); 
+                listenToPublicChannels(); 
+                listenToMyProfileAndPrivateChannels(user.uid); 
+                
+                switchChannel('general', 'general');
+                
+            } else {
+                // ログアウト状態
+                currentUser = null;
+                loginOverlay.classList.remove('hidden'); 
+                sidebar.classList.add('hidden'); // ★チャットUIを隠す
+                mainContent.classList.add('hidden'); // ★チャットUIを隠す
+                
+                messageList.innerHTML = ''; 
+                publicChannelList.innerHTML = '';
+                privateChannelList.innerHTML = '';
+                
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeMyProfile) unsubscribeMyProfile();
+            }
+        });
+        
+        // ★ユーザー名簿(users)を準備する関数
+        async function setupUserProfile(user) {
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                // ★主に「Googleログイン」の初回時に実行される★
+                await setDoc(userRef, {
+                    displayName: user.displayName || '名無しさん', // Google名
+                    photoURL: user.photoURL || defaultIcon, // ★Googleアイコン(無ければ匿名)★
+                    joinedPrivateChannels: []
+                });
+            }
+        }
+        
+        // ★認証エラーメッセージを日本語に変換するヘルパー
+        function getAuthErrorMessage(code) {
+            switch (code) {
+                case 'auth/invalid-email':
+                    return '無効なメールアドレスです。';
+                case 'auth/user-not-found':
+                    return 'ユーザーが見つかりません。';
+                case 'auth/wrong-password':
+                    return 'パスワードが間違っています。';
+                case 'auth/email-already-in-use':
+                    return 'そのメールアドレスは既に使用されています。';
+                case 'auth/weak-password':
+                    return 'パスワードは6文字以上で設定してください。';
+                case 'auth/operation-not-allowed':
+                    return 'Firebase側でログイン方法が有効になっていません。';
+                default:
+                    return 'エラーが発生しました: ' + code;
+            }
+        }
+
+        // --- 2. チャンネル処理 ---
+        
+        // ★チャンネルリストの開閉（アコーディオン）機能★
+        const channelHeaders = document.querySelectorAll('#channel-list-container h3');
+        channelHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                header.classList.toggle('collapsed');
+                const list = header.nextElementSibling;
+                if (list && list.classList.contains('channel-list')) {
+                    list.classList.toggle('hidden');
                 }
-            }, 1000);
+            });
+        });
 
-            // 1.5秒ごとに新しい単語を生成
-            wordInterval = setInterval(createWord, 1500);
-
-            // 単語を動かすアニメーションループを開始
-            requestAnimationFrame(updateGameArea);
-        }
-
-        // ゲーム終了処理
-        function endGame() {
-            clearInterval(gameInterval);
-            clearInterval(wordInterval);
+        // ★自分のプロフィールとプライベートCHを監視する
+        function listenToMyProfileAndPrivateChannels(uid) {
+            const userRef = doc(db, "users", uid);
             
-            setTimeout(() => {
-                alert(`ゲーム終了！ スコアは ${score} でした。`);
-                titleScreen.style.display = 'block';
-                gameScreen.style.display = 'none';
-            }, 500);
-        }
-
-        // 新しい単語を生成
-        function createWord() {
-            if (timeLeft <= 0) return; // ゲーム終了時は作らない
-
-            const wordText = wordList[Math.floor(Math.random() * wordList.length)];
-            const wordElement = document.createElement('div');
-            wordElement.className = 'falling-word';
-            wordElement.textContent = wordText;
-            wordElement.dataset.word = wordText; // 元の単語をデータとして保持
+            if (unsubscribeMyProfile) unsubscribeMyProfile();
             
-            const gameRect = gameScreen.getBoundingClientRect();
-            const maxLeft = gameRect.width - (wordText.length * 15 + 20); // 単語の幅をざっくり計算
-            wordElement.style.left = `${Math.random() * maxLeft}px`;
-            wordElement.style.top = '0px';
-
-            gameScreen.appendChild(wordElement);
-            fallingWords.push(wordElement);
+            unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    // プロフィールを更新
+                    userIcon.src = data.photoURL || defaultIcon; // ★匿名の人のアイコン★
+                    userName.textContent = data.displayName;
+                    profileNameInput.value = data.displayName;
+                    profileIconInput.value = data.photoURL;
+                    
+                    // ★プライベートCHのリストを描画し直す★
+                    renderPrivateChannels(data.joinedPrivateChannels || []);
+                }
+            });
         }
+        
+        // ★プライベートCHを描画する関数 (競合状態バグを修正)★
+        async function renderPrivateChannels(idArray) {
+            
+            // 1. 現在HTMLに表示されているIDのセットを作成
+            const existingIdsOnPage = new Set();
+            privateChannelList.querySelectorAll('.channel-item').forEach(el => {
+                existingIdsOnPage.add(el.dataset.id);
+            });
 
-        // 毎フレーム単語を落とす処理
-        function updateGameArea() {
-            if (timeLeft <= 0) return; // ゲーム終了
-
-            fallingWords.forEach((wordElement, index) => {
-                let top = parseFloat(wordElement.style.top);
-                top += 1; // 落下速度 (数字を大きくすると速くなる)
-                wordElement.style.top = `${top}px`;
-
-                // 画面外に落ちたら
-                if (top > gameScreen.clientHeight) {
-                    wordElement.remove();
-                    fallingWords.splice(index, 1);
-                    if (wordElement === currentWordElement) {
-                        resetCurrentWord();
-                    }
+            // 2. ユーザーのリスト (idArray) にはもう無いのに、HTMLに残っているものを削除
+            privateChannelList.querySelectorAll('.channel-item').forEach(el => {
+                if (!idArray.includes(el.dataset.id)) {
+                    el.remove();
                 }
             });
 
-            requestAnimationFrame(updateGameArea); // 次のフレームを予約
+            // 3. ユーザーのリスト (idArray) には有るのに、HTMLにまだ無いものを追加
+            for (const id of idArray) {
+                if (!existingIdsOnPage.has(id)) {
+                    // ★これは新しいIDなので、DBから情報を取ってきて追加する
+                    try { 
+                        const channelDoc = await getDoc(doc(db, "channels", id));
+                        if (channelDoc.exists()) {
+                            const channel = channelDoc.data();
+                            const li = createChannelElement(channelDoc.id, channel.name, true, channel.ownerId); 
+                            privateChannelList.appendChild(li); // ★リストの最後に「追加」する
+                        }
+                    } catch(e) { 
+                        // (競合状態などで失敗しても、次のonSnapshotでリトライされるのでOK)
+                        console.warn("チャンネルの取得に失敗 (競合かも):", id, e.message); 
+                    }
+                }
+            }
+        }
+
+        
+        // ★公開チャンネルの並び替え (インデックス不要版)
+        function listenToPublicChannels() {
+            const q = query(collection(db, "channels"), where("secretId", "==", null));
+            
+            onSnapshot(q, (snapshot) => {
+                publicChannelList.innerHTML = ''; 
+                
+                const channels = [];
+                snapshot.forEach((doc) => {
+                    channels.push({ id: doc.id, data: doc.data() });
+                });
+
+                // ★JS側で名前順 (a-z) にソートする★
+                channels.sort((a, b) => a.data.name.localeCompare(b.data.name));
+                
+                if (channels.length === 0) {
+                     addDoc(collection(db, "channels"), { 
+                        name: "general", 
+                        secretId: null, 
+                        ownerId: "system" 
+                    });
+                } else {
+                    channels.forEach((channel) => {
+                        const li = createChannelElement(channel.id, channel.data.name, false, channel.data.ownerId); 
+                        publicChannelList.appendChild(li);
+                    });
+                }
+            }, (error) => { 
+                console.error("公開チャンネルの監視エラー:", error);
+            });
         }
         
-        // ★★★ (キー入力処理のバグ修正) ★★★
-        document.addEventListener('keydown', (e) => {
-            const key = e.key; // 押されたキー (大文字/小文字やShiftなども含む)
-            
-            // ★★★ (修正箇所 1) ★★★
-            // ★ゲームとチャット判定に使う「小文字のキー」を用意★
-            const typedKey = key.toLowerCase();
-            // ★★★ (修正ここまで 1) ★★★
-            
-            // --- 1. チャット起動の判定 ---
-            if (typedKey.length === 1 && typedKey.match(/[a-z]/i)) { // アルファベットのみ
-                keyBuffer += typedKey;
+        // ★★★ (バグ修正) チャンネルのHTML要素を作成 (削除ロジック修正) ★★★
+        function createChannelElement(id, name, isPrivate, ownerId) {
+            const li = document.createElement('li');
+            li.className = 'channel-item';
+            li.dataset.id = id; 
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'channel-name';
+            nameSpan.innerHTML = `${isPrivate ? '<span class="lock-icon">🔒</span> ' : '# '} ${name}`;
+            nameSpan.addEventListener('click', () => {
+                switchChannel(id, name);
+            });
+            li.appendChild(nameSpan);
+
+            // ★削除ボタンのロジック★
+            if (ownerId === currentUser.uid && id !== 'general') { 
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-channel-btn';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = 'チャンネルを削除';
+                deleteBtn.style.display = 'inline-block'; 
                 
-                if (keyBuffer.includes("chat")) {
-                    openChat();
-                    keyBuffer = ""; // バッファをリセット
-                }
-                if (keyBuffer.length > 4) {
-                    keyBuffer = keyBuffer.slice(-4);
-                }
-            }
-            
-            // --- 2. ゲームのタイピング判定 ---
-            
-            // ★チャットが開いている時は、ゲーム入力を無効化★
-            if (!chatModalOverlay.classList.contains('hidden')) {
-                return;
-            }
-            
-            // ゲーム画面が表示されていない時は、ゲーム入力を無効化
-            if (gameScreen.style.display === 'none') {
-                return;
-            }
-
-            // ★「Shift」や「Enter」などの制御キーは無視する★
-            // (この判定は `key` (大文字小文字判別) で行う)
-            if (key.length > 1) return;
-            // ★アルファベットと数字以外は無視する (日本語入力なども弾く)★
-            if (!key.match(/^[a-zA-Z0-9]$/)) return;
-
-
-            // まだ何もタイプしていない場合
-            if (currentWordElement === null) {
-                // 押されたキーで始まる単語を探す
-                for (const wordEl of fallingWords) {
-                    
-                    // ★★★ (修正箇所 2) ★★★
-                    // ★「typedKey」(小文字) で比較する★
-                    if (wordEl.dataset.word.startsWith(typedKey)) { 
-                        currentWordElement = wordEl;
-                        currentWordIndex = 1; // 1文字目をタイプした
-                        updateWordAppearance();
-                        return; // 一致したら終了
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); 
+                    if (confirm(`チャンネル「${name}」を削除しますか？`)) {
+                        try {
+                            // ★ 1. データベースからチャンネルを削除 ★
+                            await deleteDoc(doc(db, "channels", id));
+                            
+                            // ★ 2. もし削除したのが今いるCHなら、generalに戻る ★
+                            if (id === currentChannelId) {
+                                switchChannel('general', 'general');
+                            }
+                            
+                            // ★ 3. (ここが重要！) もしこれがプライベートCHなら、
+                            //    自分の参加リスト (users) からも削除する ★
+                            if (isPrivate) {
+                                const userRef = doc(db, "users", currentUser.uid);
+                                await updateDoc(userRef, {
+                                    joinedPrivateChannels: arrayRemove(id)
+                                });
+                                // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、
+                                // 自動でプライベートCHリストが更新（削除）される★
+                            }
+                            // (公開CHの場合は、listenToPublicChannels の onSnapshot が
+                            // deleteDoc を検知して自動でリストが更新される)
+                            
+                        } catch (error) {
+                            console.error("チャンネル削除エラー:", error);
+                        }
                     }
+                });
+                li.appendChild(deleteBtn);
+            }
+            if (id === currentChannelId) li.classList.add('active');
+            return li;
+        }
+        // ★★★ (修正ここまで) ★★★
+        
+        // ★プライベートCH作成チェックボックスの処理★
+        isPrivateCheckbox.addEventListener('change', () => {
+            secretIdInput.classList.toggle('hidden', !isPrivateCheckbox.checked);
+            secretIdInput.required = isPrivateCheckbox.checked;
+        });
+
+        // ★チャンネル作成フォームの処理 (公開CHも自動選択する)
+        addChannelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const channelName = addChannelInput.value.trim();
+            if (channelName === '' || !currentUser) return;
+            const newChannelData = {
+                name: channelName,
+                secretId: null,
+                ownerId: currentUser.uid
+            };
+            if (isPrivateCheckbox.checked) {
+                const secretId = secretIdInput.value.trim();
+                if (secretId === '') {
+                    alert('ID（合言葉）を入力してください。');
+                    return; 
                 }
-            } 
-            // すでにタイプ中の単語がある場合
-            else {
-                const targetWord = currentWordElement.dataset.word;
+                newChannelData.secretId = secretId;
+            }
+            try {
+                const docRef = await addDoc(collection(db, "channels"), newChannelData);
                 
-                // ★★★ (修正箇所 3) ★★★
-                // ★「typedKey」(小文字) で比較する★
-                if (targetWord[currentWordIndex] === typedKey) {
-                    currentWordIndex++;
-                    updateWordAppearance();
-                    
-                    // 単語をタイプし終えた場合
-                    if (currentWordIndex === targetWord.length) {
-                        wordTyped();
-                    }
-                } 
-                // タイプミス
-                else {
-                    resetCurrentWord();
+                if (newChannelData.secretId !== null) {
+                    // プライベートCHの場合：自分を参加させ、切り替える
+                    const userRef = doc(db, "users", currentUser.uid);
+                    await updateDoc(userRef, { joinedPrivateChannels: arrayUnion(docRef.id) });
+                    // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、自動でリストが更新される★
+                    switchChannel(docRef.id, newChannelData.name);
+                } else {
+                    // ★公開CHの場合：すぐにチャンネルを切り替える★
+                    switchChannel(docRef.id, newChannelData.name);
                 }
+                
+                addChannelInput.value = '';
+                secretIdInput.value = '';
+                isPrivateCheckbox.checked = false;
+                secretIdInput.classList.add('hidden');
+                secretIdInput.required = false; 
+            } catch (error) { console.error("チャンネル追加エラー:", error); }
+        });
+        
+        // ★IDで参加するフォーム (インデックス不要版)
+        joinPrivateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const secretId = joinIdInput.value.trim();
+            if (secretId === '' || !currentUser) return;
+            
+            try {
+                // 1. ★「チャンネル全部」を取得する (インデックス不要)
+                const allChannelsQuery = query(collection(db, "channels"));
+                const snapshot = await getDocs(allChannelsQuery);
+                
+                let foundDoc = null;
+                
+                // 2. ★手元 (JS) で、合言葉 (secretId) が一致するものを探す
+                snapshot.forEach((doc) => {
+                    if (doc.data().secretId === secretId) {
+                        foundDoc = doc;
+                    }
+                });
+
+                // 3. 結果を処理
+                if (foundDoc === null) {
+                    alert('ID（合言葉）が間違っているか、チャンネルが存在しません。');
+                } else {
+                    // 見つかった！
+                    const userRef = doc(db, "users", currentUser.uid);
+                    // 自分をそのCHの参加者リストに追加
+                    await updateDoc(userRef, { joinedPrivateChannels: arrayUnion(foundDoc.id) });
+                    // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、自動でリストが更新される★
+                    
+                    // そのCHに切り替える
+                    switchChannel(foundDoc.id, foundDoc.data().name);
+                    joinIdInput.value = '';
+                }
+            } catch (error) {
+                console.error("ID参加エラー:", error);
+                alert("チャンネルの検索に失敗しました。");
             }
         });
-        // ★★★ (修正ここまで) ★★★
 
-
-        // 単語の見た目を更新 (タイプ済みの文字を赤くする)
-        function updateWordAppearance() {
-            if (!currentWordElement) return;
-            const word = currentWordElement.dataset.word;
-            const typedPart = `<span class="typed">${word.substring(0, currentWordIndex)}</span>`;
-            const remainingPart = word.substring(currentWordIndex);
-            currentWordElement.innerHTML = typedPart + remainingPart;
-        }
-
-        // タイプをリセット
-        function resetCurrentWord() {
-            if (currentWordElement) {
-                currentWordElement.innerHTML = currentWordElement.dataset.word; // 見た目を元に戻す
-            }
-            currentWordElement = null;
-            currentWordIndex = 0;
-        }
-
-        // 単語をタイプ完了した時の処理
-        function wordTyped() {
-            score += currentWordElement.dataset.word.length; // 文字数でスコア加算
-            scoreDisplay.textContent = `Score: ${score}`;
-            
-            // 画面と配列から削除
-            currentWordElement.remove();
-            fallingWords = fallingWords.filter(wordEl => wordEl !== currentWordElement);
-            
-            resetCurrentWord(); // 次の単語に備える
-        }
-
-        // --- ★チャットを開く/閉じる処理 ---
         
-        function openChat() {
-            chatIframe.src = `${baseChatUrl}?t=${new Date().getTime()}`;
-            chatModalOverlay.classList.remove('hidden');
+        // チャンネル切り替え
+        function switchChannel(channelId, channelName) {
+            if (unsubscribeMessages) unsubscribeMessages();
+            currentChannelId = channelId; 
+            currentChannelName.textContent = channelName; 
+            document.querySelectorAll('.channel-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.id === channelId);
+            });
+            listenToMessages(channelId);
         }
 
-        function closeChat() {
-            chatModalOverlay.classList.add('hidden');
-            chatIframe.src = "about:blank"; 
-            keyBuffer = ""; 
+        // --- 3. メッセージ送受信処理 ---
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const text = messageInput.value.trim();
+            if (text === '' || !currentUser) return; 
+            try {
+                await addDoc(collection(db, "messages"), {
+                    senderId: currentUser.uid, 
+                    channelId: currentChannelId, 
+                    timestamp: serverTimestamp(),
+                    text: text 
+                });
+                messageInput.value = ''; 
+            } catch (error) { 
+                console.error("メッセージ送信エラー:", error); 
+                alert("送信に失敗しました。");
+            }
+        });
+        function listenToUsers() {
+            const usersRef = collection(db, "users");
+            onSnapshot(usersRef, (snapshot) => {
+                snapshot.docs.forEach(doc => { usersMap[doc.id] = doc.data(); });
+                renderAllMessages(); 
+            }, (error) => { 
+                console.error("ユーザー監視エラー:", error);
+            });
+        }
+        
+        // ★メッセージの並び替え (インデックス不要版)
+        function listenToMessages(channelId) {
+            const q = query(
+                collection(db, "messages"), 
+                where("channelId", "==", channelId)
+            );
+            unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
+                currentMessages = querySnapshot.docs.map(doc => doc.data());
+                
+                // ★JS側で時間順 (古い→新しい) にソートする★
+                currentMessages.sort((a, b) => {
+                    const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+                    const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+                    return timeA - timeB;
+                });
+                
+                renderAllMessages();
+            }, (error) => { 
+                console.error("メッセージ監視エラー:", error);
+            });
+        }
+        
+        function renderAllMessages() {
+            messageList.innerHTML = ''; 
+            currentMessages.forEach(msgData => { 
+                const senderInfo = usersMap[msgData.senderId] || { displayName: '不明なユーザー', photoURL: defaultIcon };
+                displayMessage(senderInfo.displayName, senderInfo.photoURL, msgData.text);
+            });
+            messageList.scrollTop = messageList.scrollHeight;
         }
 
-        // 閉じるボタンのイベント
-        closeChatBtn.addEventListener('click', closeChat);
+        // --- 4. メッセージ表示ヘルパー ---
+        function displayMessage(name, icon, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            const safeIcon = icon || defaultIcon; // ★匿名の人のアイコン★
+            const safeText = text || ''; 
+            const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
+            
+            msgDiv.innerHTML = `
+                <img src="${safeIcon}" class="message-icon" alt="${name}">
+                <div class="message-content">
+                    <div class="message-sender">${name}</div>
+                    ${messageBodyHTML}
+                </div>
+            `;
+            messageList.appendChild(msgDiv);
+        }
+        
+        // --- 5. プロフィール編集モーダル ---
+        settingsBtn.addEventListener('click', () => { profileModalOverlay.classList.remove('hidden'); });
+        profileCancelBtn.addEventListener('click', () => { profileModalOverlay.classList.add('hidden'); });
+        profileSaveBtn.addEventListener('click', async () => {
+            const newName = profileNameInput.value.trim();
+            let newIcon = profileIconInput.value.trim();
+            if (newName === '') return alert('名前を入力してください。');
+            if (newIcon === '') newIcon = defaultIcon; // ★匿名の人のアイコン★
+            if (!currentUser) return;
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, { displayName: newName, photoURL: newIcon });
+                profileModalOverlay.classList.add('hidden');
+            } catch (error) { console.error("プロフィール更新エラー:", error); }
+        });
 
     </script>
 </body>
