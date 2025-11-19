@@ -187,13 +187,12 @@
         const scoreDisplay = document.getElementById('score-display');
         const timeDisplay = document.getElementById('time-display');
 
-        // --- ★チャットのDOM要素 (ここから追加) ---
+        // --- ★チャットのDOM要素 ---
         const chatModalOverlay = document.getElementById('chat-modal-overlay');
         const closeChatBtn = document.getElementById('close-chat-btn');
         const chatIframe = document.getElementById('chat-iframe');
         // 元のチャットURLを保持
         const baseChatUrl = chatIframe.src; 
-        // --- (ここまで追加) ---
 
         // --- ゲームの変数 ---
         let score = 0;
@@ -211,9 +210,8 @@
             "css", "developer", "coding", "awesome", "project"
         ];
         
-        // --- ★チャット起動用の変数 (ここから追加) ---
+        // --- ★チャット起動用の変数 ---
         let keyBuffer = ""; // 入力されたキーを保持する
-        // --- (ここまで追加) ---
 
         // --- ゲームロジック ---
 
@@ -251,9 +249,7 @@
         function endGame() {
             clearInterval(gameInterval);
             clearInterval(wordInterval);
-            // (アニメーションは止めないので、残った単語は落ち続ける)
             
-            // 5秒後にタイトルに戻る
             setTimeout(() => {
                 alert(`ゲーム終了！ スコアは ${score} でした。`);
                 titleScreen.style.display = 'block';
@@ -271,7 +267,6 @@
             wordElement.textContent = wordText;
             wordElement.dataset.word = wordText; // 元の単語をデータとして保持
             
-            // 横位置をランダムに (画面端にはみ出ないように)
             const gameRect = gameScreen.getBoundingClientRect();
             const maxLeft = gameRect.width - (wordText.length * 15 + 20); // 単語の幅をざっくり計算
             wordElement.style.left = `${Math.random() * maxLeft}px`;
@@ -294,7 +289,6 @@
                 if (top > gameScreen.clientHeight) {
                     wordElement.remove();
                     fallingWords.splice(index, 1);
-                    // 落ちたら現在の入力をリセット
                     if (wordElement === currentWordElement) {
                         resetCurrentWord();
                     }
@@ -304,20 +298,23 @@
             requestAnimationFrame(updateGameArea); // 次のフレームを予約
         }
         
-        // ★★★ (キー入力処理の修正) ★★★
+        // ★★★ (キー入力処理のバグ修正) ★★★
         document.addEventListener('keydown', (e) => {
-            const key = e.key;
+            const key = e.key; // 押されたキー (大文字/小文字やShiftなども含む)
             
-            // --- 1. チャット起動の判定 (ゲーム中かどうかに関わらず常に監視) ---
-            if (key.length === 1 && key.match(/[a-z]/i)) { // アルファベットのみ
-                keyBuffer += key.toLowerCase();
+            // ★★★ (修正箇所 1) ★★★
+            // ★ゲームとチャット判定に使う「小文字のキー」を用意★
+            const typedKey = key.toLowerCase();
+            // ★★★ (修正ここまで 1) ★★★
+            
+            // --- 1. チャット起動の判定 ---
+            if (typedKey.length === 1 && typedKey.match(/[a-z]/i)) { // アルファベットのみ
+                keyBuffer += typedKey;
                 
-                // "chat" が入力されたかチェック
                 if (keyBuffer.includes("chat")) {
                     openChat();
                     keyBuffer = ""; // バッファをリセット
                 }
-                // バッファが長くなりすぎたらリセット (末尾4文字だけ保持)
                 if (keyBuffer.length > 4) {
                     keyBuffer = keyBuffer.slice(-4);
                 }
@@ -335,14 +332,21 @@
                 return;
             }
 
-            // スペースキーやエンターキーなどは無視
+            // ★「Shift」や「Enter」などの制御キーは無視する★
+            // (この判定は `key` (大文字小文字判別) で行う)
             if (key.length > 1) return;
+            // ★アルファベットと数字以外は無視する (日本語入力なども弾く)★
+            if (!key.match(/^[a-zA-Z0-9]$/)) return;
+
 
             // まだ何もタイプしていない場合
             if (currentWordElement === null) {
                 // 押されたキーで始まる単語を探す
                 for (const wordEl of fallingWords) {
-                    if (wordEl.dataset.word.startsWith(key)) {
+                    
+                    // ★★★ (修正箇所 2) ★★★
+                    // ★「typedKey」(小文字) で比較する★
+                    if (wordEl.dataset.word.startsWith(typedKey)) { 
                         currentWordElement = wordEl;
                         currentWordIndex = 1; // 1文字目をタイプした
                         updateWordAppearance();
@@ -353,8 +357,10 @@
             // すでにタイプ中の単語がある場合
             else {
                 const targetWord = currentWordElement.dataset.word;
-                // 次の文字が一致した場合
-                if (targetWord[currentWordIndex] === key) {
+                
+                // ★★★ (修正箇所 3) ★★★
+                // ★「typedKey」(小文字) で比較する★
+                if (targetWord[currentWordIndex] === typedKey) {
                     currentWordIndex++;
                     updateWordAppearance();
                     
@@ -366,7 +372,6 @@
                 // タイプミス
                 else {
                     resetCurrentWord();
-                    // (もしタイプミスしたキーが、別の単語の頭文字なら、そちらに切り替える処理も入れられるが、今回はシンプルにリセットのみ)
                 }
             }
         });
@@ -403,26 +408,21 @@
             resetCurrentWord(); // 次の単語に備える
         }
 
-        // --- ★チャットを開く/閉じる処理 (ここから追加) ---
+        // --- ★チャットを開く/閉じる処理 ---
         
         function openChat() {
-            // ★ iframeのsrcを再設定 (チャットが最新の状態で開くように)
-            // (URLの末尾にランダムな値 ?t=... を付けると、キャッシュを無視して強制的に再読み込みさせられます)
             chatIframe.src = `${baseChatUrl}?t=${new Date().getTime()}`;
-
             chatModalOverlay.classList.remove('hidden');
         }
 
         function closeChat() {
             chatModalOverlay.classList.add('hidden');
-            // ★iframeのsrcを空にすると、チャットの音声や通信がバックグラウンドで動くのを停止できる
             chatIframe.src = "about:blank"; 
-            keyBuffer = ""; // 閉じた直後にまた開かないように
+            keyBuffer = ""; 
         }
 
         // 閉じるボタンのイベント
         closeChatBtn.addEventListener('click', closeChat);
-        // --- (ここまで追加) ---
 
     </script>
 </body>
