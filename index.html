@@ -188,183 +188,79 @@
             padding: 8px; border-radius: 3px; font-size: 0.9em;
         }
         .sidebar-form button {
-            background: #5865f2;
-            color: white;
-            border: none;
-            padding: 8px;
-            border-radius: 3px;
-            cursor: pointer;
+            background: #5865f2; color: white; border: none;
+            padding: 8px; border-radius: 3px; cursor: pointer;
         }
         .checkbox-group {
-            display: flex;
-            align-items: center;
-            font-size: 0.9em;
-            color: #b9bbbe;
+            display: flex; align-items: center;
+            font-size: 0.9em; color: #b9bbbe;
         }
 
         /* ユーザー情報 (サイドバー下部) */
         #user-info-bar {
-            background: #292b2f;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
+            background: #292b2f; padding: 10px; display: flex;
+            align-items: center; flex-shrink: 0;
         }
         #user-info-bar img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 10px;
+            width: 32px; height: 32px; border-radius: 50%; margin-right: 10px;
         }
         #user-info-bar span {
-            font-size: 0.9em;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex-grow: 1;
+            font-size: 0.9em; font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;
         }
         #settings-btn {
-            background: none;
-            border: none;
-            color: #b9bbbe;
-            font-size: 1.2em;
-            cursor: pointer;
-            margin-left: auto;
-            padding: 5px;
-            flex-shrink: 0;
+            background: none; border: none; color: #b9bbbe;
+            font-size: 1.2em; cursor: pointer; margin-left: auto; padding: 5px; flex-shrink: 0;
         }
-        #settings-btn:hover {
-            color: #fff;
-        }
+        #settings-btn:hover { color: #fff; }
 
         /* メインコンテンツ */
         #main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background: #36393f;
+            flex-grow: 1; display: flex; flex-direction: column; background: #36393f;
         }
         #main-header {
-            padding: 20px;
-            border-bottom: 1px solid #40444b;
-            box-shadow: 0 1px 0 rgba(0,0,0,.2);
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #fff;
+            padding: 20px; border-bottom: 1px solid #40444b;
+            box-shadow: 0 1px 0 rgba(0,0,0,.2); font-size: 1.2em;
+            font-weight: bold; color: #fff;
         }
 
         /* チャットエリア */
         #message-list {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
+            flex-grow: 1; padding: 20px; overflow-y: auto;
         }
-        .message {
-            margin-bottom: 15px;
-            display: flex;
-        }
-        .message-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-        .message-content {
-            padding-top: 5px;
-        }
-        .message-sender {
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 5px;
-        } 
-        .message-text {
-            line-height: 1.4;
-            color: #dcddde;
-        } 
+        .message { margin-bottom: 15px; display: flex; }
+        .message-icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+        .message-content { padding-top: 5px; }
+        .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; } 
+        .message-text { line-height: 1.4; color: #dcddde; } 
 
         /* 送信フォーム */
         #message-form {
-            display: flex;
-            padding: 20px;
-            background: #40444b;
-            align-items: center;
+            display: flex; padding: 20px; background: #40444b; align-items: center;
         }
         #message-input {
-            flex-grow: 1;
-            background: #484c52;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            color: #dcddde;
-            font-size: 1em;
-            outline: none;
+            flex-grow: 1; background: #484c52; border: none;
+            border-radius: 8px; padding: 10px 15px;
+            color: #dcddde; font-size: 1em; outline: none;
         }
         
         /* プロフィール編集モーダル */
         #profile-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
         }
-        #profile-modal {
-            background: #2f3136;
-            padding: 30px;
-            border-radius: 8px;
-            width: 400px;
-        }
-        #profile-modal h2 {
-            margin-top: 0;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #b9bbbe;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            background: #202225;
-            border: 1px solid #40444b;
-            color: #dcddde;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-        .modal-buttons button {
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        #profile-cancel-btn {
-            background: #747f8d;
-            color: white;
-        }
-        #profile-save-btn {
-            background: #5865f2;
-            color: white;
-        }
+        #profile-modal { background: #2f3136; padding: 30px; border-radius: 8px; width: 400px; }
+        #profile-modal h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #b9bbbe; }
+        .form-group input { width: 100%; padding: 10px; background: #202225; border: 1px solid #40444b; color: #dcddde; border-radius: 5px; box-sizing: border-box; }
+        .modal-buttons { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .modal-buttons button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-left: 10px; }
+        #profile-cancel-btn { background: #747f8d; color: white; }
+        #profile-save-btn { background: #5865f2; color: white; }
         
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -485,7 +381,7 @@
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
             arrayUnion, deleteDoc,
-            getDocs // ★バグ修正のために getDocs をインポート
+            getDocs // ★インデックス不要の検索(getDocs)をインポート
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
@@ -504,8 +400,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // --- 1. 認証 (ログイン) 処理 ---
+        // --- 0. ★グローバル変数 と 初期アイコン★ ---
         
+        // ★★★ (リクエスト修正) ★★★
+        // ★ご要望の「匿名の人のアイコン」のURLです★
+        const defaultIcon = 'https://i.imgur.com/B1Q1hL1.png';
+        // ★★★ (修正ここまで) ★★★
+
         // DOM要素の取得 (ログイン関連)
         const loginOverlay = document.getElementById('login-overlay');
         const loginTabs = document.querySelectorAll('.login-tab');
@@ -545,9 +446,11 @@
         let currentMessages = [];
         let currentChannelId = 'general'; 
         let unsubscribeMessages = null; 
-        let unsubscribeMyProfile = null; // ★プライベートCHの監視を保持する変数
-
+        let unsubscribeMyProfile = null; 
         
+        
+        // --- 1. 認証 (ログイン) 処理 ---
+
         // ★ログイン/新規登録のタブ切り替え
         loginTabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -607,7 +510,7 @@
                 // 2. ★Firestoreの 'users' 名簿に、手動でプロフィールを登録★
                 await setDoc(doc(db, "users", user.uid), {
                     displayName: displayName, // ★フォームから取得した表示名
-                    photoURL: 'https://i.imgur.com/6M6yJ1I.png', // ★デフォルトのアイコン
+                    photoURL: defaultIcon, // ★匿名の人のアイコン★
                     joinedPrivateChannels: []
                 });
                 
@@ -627,12 +530,11 @@
                 
                 await setupUserProfile(user); 
                 
-                // ★★★ (バグ修正) 監視の順番を変更 ★★★
-                listenToUsers(); // 1. 全ユーザーの名簿を監視
-                listenToPublicChannels(); // 2. 公開CHを監視
-                listenToMyProfileAndPrivateChannels(user.uid); // 3. 自分の情報を監視 (これがプライベートCHも読み込む)
+                listenToUsers(); 
+                listenToPublicChannels(); 
+                listenToMyProfileAndPrivateChannels(user.uid); 
                 
-                switchChannel('general', 'general'); // 4. 最後にgeneralに接続
+                switchChannel('general', 'general');
                 
             } else {
                 // ログアウト状態
@@ -659,7 +561,7 @@
                 // ★主に「Googleログイン」の初回時に実行される★
                 await setDoc(userRef, {
                     displayName: user.displayName || '名無しさん', // Google名
-                    photoURL: user.photoURL || 'https://i.imgur.com/6M6yJ1I.png', // Googleアイコン
+                    photoURL: user.photoURL || defaultIcon, // ★Googleアイコン(無ければ匿名)★
                     joinedPrivateChannels: []
                 });
             }
@@ -678,6 +580,8 @@
                     return 'そのメールアドレスは既に使用されています。';
                 case 'auth/weak-password':
                     return 'パスワードは6文字以上で設定してください。';
+                case 'auth/operation-not-allowed':
+                    return 'Firebase側でログイン方法が有効になっていません。';
                 default:
                     return 'エラーが発生しました: ' + code;
             }
@@ -697,18 +601,17 @@
             });
         });
 
-        // ★★★ (バグ修正) プライベートCHの読み込みロジックを修正 ★★★
+        // ★自分のプロフィールとプライベートCHを監視する
         function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
             
-            // もし既に監視中なら、一度停止する
             if (unsubscribeMyProfile) unsubscribeMyProfile();
             
             unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
-                    // 自分のプロフィール（アイコンと名前）を更新
-                    userIcon.src = data.photoURL || 'https://i.imgur.com/6M6yJ1I.png'; 
+                    // プロフィールを更新
+                    userIcon.src = data.photoURL || defaultIcon; // ★匿名の人のアイコン★
                     userName.textContent = data.displayName;
                     profileNameInput.value = data.displayName;
                     profileIconInput.value = data.photoURL;
@@ -719,29 +622,46 @@
             });
         }
         
-        // ★プライベートCHを描画する専用の関数 (修正済み)
+        // ★★★ (バグ修正 1/2) ★★★
+        // ★プライベートCHを描画する関数 (競合状態バグを修正)★
         async function renderPrivateChannels(idArray) {
-            privateChannelList.innerHTML = ''; // いったん空にする
             
-            // ★IDの配列 (idArray) をもとに、CH情報を1個ずつ取ってくる★
+            // 1. 現在HTMLに表示されているIDのセットを作成
+            const existingIdsOnPage = new Set();
+            privateChannelList.querySelectorAll('.channel-item').forEach(el => {
+                existingIdsOnPage.add(el.dataset.id);
+            });
+
+            // 2. ユーザーのリスト (idArray) にはもう無いのに、HTMLに残っているものを削除
+            privateChannelList.querySelectorAll('.channel-item').forEach(el => {
+                if (!idArray.includes(el.dataset.id)) {
+                    el.remove();
+                }
+            });
+
+            // 3. ユーザーのリスト (idArray) には有るのに、HTMLにまだ無いものを追加
             for (const id of idArray) {
-                try { 
-                    const channelDoc = await getDoc(doc(db, "channels", id));
-                    if (channelDoc.exists()) {
-                        const channel = channelDoc.data();
-                        // チャンネルリストのHTML要素を作成
-                        const li = createChannelElement(channelDoc.id, channel.name, true, channel.ownerId); 
-                        privateChannelList.appendChild(li);
+                if (!existingIdsOnPage.has(id)) {
+                    // ★これは新しいIDなので、DBから情報を取ってきて追加する
+                    try { 
+                        const channelDoc = await getDoc(doc(db, "channels", id));
+                        if (channelDoc.exists()) {
+                            const channel = channelDoc.data();
+                            const li = createChannelElement(channelDoc.id, channel.name, true, channel.ownerId); 
+                            privateChannelList.appendChild(li); // ★リストの最後に「追加」する
+                        }
+                    } catch(e) { 
+                        // (競合状態などで失敗しても、次のonSnapshotでリトライされるのでOK)
+                        console.warn("チャンネルの取得に失敗 (競合かも):", id, e.message); 
                     }
-                } catch(e) { console.warn("読み込めないチャンネルがあります:", id); }
+                }
             }
         }
-        // ★★★ (修正ここまで) ★★★
+        // ★★★ (修正ここまで 1/2) ★★★
 
         
         // ★公開チャンネルの並び替え (インデックス不要版)
         function listenToPublicChannels() {
-            // ★ orderBy("name") を削除 ★
             const q = query(collection(db, "channels"), where("secretId", "==", null));
             
             onSnapshot(q, (snapshot) => {
@@ -767,7 +687,7 @@
                         publicChannelList.appendChild(li);
                     });
                 }
-            }, (error) => { // ★エラーハンドリング追加
+            }, (error) => { 
                 console.error("公開チャンネルの監視エラー:", error);
             });
         }
@@ -798,7 +718,6 @@
                             if (id === currentChannelId) {
                                 switchChannel('general', 'general');
                             }
-                            // (注：他の人が参加していた場合、その人のリストからも消す処理が本当は必要だが、今回は省略)
                         } catch (error) {
                             console.error("チャンネル削除エラー:", error);
                         }
@@ -856,25 +775,34 @@
             } catch (error) { console.error("チャンネル追加エラー:", error); }
         });
         
-        // ★IDで参加するフォーム (修正済み)
+        // ★★★ (バグ修正 2/2) ★★★
+        // ★IDで参加するフォーム (インデックス不要版)
         joinPrivateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const secretId = joinIdInput.value.trim();
             if (secretId === '' || !currentUser) return;
             
-            // ★ID (secretId) でチャンネルを検索
-            const q = query(collection(db, "channels"), where("secretId", "==", secretId));
-            
             try {
-                const snapshot = await getDocs(q); // ★getDocs (1回だけ取得) に変更
+                // 1. ★「チャンネル全部」を取得する (インデックス不要)
+                const allChannelsQuery = query(collection(db, "channels"));
+                const snapshot = await getDocs(allChannelsQuery);
                 
-                if (snapshot.empty) {
+                let foundDoc = null;
+                
+                // 2. ★手元 (JS) で、合言葉 (secretId) が一致するものを探す
+                snapshot.forEach((doc) => {
+                    if (doc.data().secretId === secretId) {
+                        foundDoc = doc;
+                    }
+                });
+
+                // 3. 結果を処理
+                if (foundDoc === null) {
                     alert('ID（合言葉）が間違っているか、チャンネルが存在しません。');
                 } else {
-                    const foundDoc = snapshot.docs[0]; // 見つかった最初のCH
+                    // 見つかった！
                     const userRef = doc(db, "users", currentUser.uid);
-                    
-                    // ★自分をそのCHの参加者リスト (joinedPrivateChannels) に追加
+                    // 自分をそのCHの参加者リストに追加
                     await updateDoc(userRef, { joinedPrivateChannels: arrayUnion(foundDoc.id) });
                     // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、自動でリストが更新される★
                     
@@ -887,6 +815,8 @@
                 alert("チャンネルの検索に失敗しました。");
             }
         });
+        // ★★★ (修正ここまで 2/2) ★★★
+
         
         // チャンネル切り替え
         function switchChannel(channelId, channelName) {
@@ -922,14 +852,13 @@
             onSnapshot(usersRef, (snapshot) => {
                 snapshot.docs.forEach(doc => { usersMap[doc.id] = doc.data(); });
                 renderAllMessages(); 
-            }, (error) => { // ★エラーハンドリング追加
+            }, (error) => { 
                 console.error("ユーザー監視エラー:", error);
             });
         }
         
         // ★メッセージの並び替え (インデックス不要版)
         function listenToMessages(channelId) {
-            // ★ orderBy("timestamp") を削除 ★
             const q = query(
                 collection(db, "messages"), 
                 where("channelId", "==", channelId)
@@ -945,16 +874,15 @@
                 });
                 
                 renderAllMessages();
-            }, (error) => { // ★エラーハンドリング追加
+            }, (error) => { 
                 console.error("メッセージ監視エラー:", error);
-                // (ここでインデックスのエラーが出ていたはず)
             });
         }
         
         function renderAllMessages() {
             messageList.innerHTML = ''; 
             currentMessages.forEach(msgData => { 
-                const senderInfo = usersMap[msgData.senderId] || { displayName: '不明なユーザー', photoURL: 'https://i.imgur.com/6M6yJ1I.png' };
+                const senderInfo = usersMap[msgData.senderId] || { displayName: '不明なユーザー', photoURL: defaultIcon };
                 displayMessage(senderInfo.displayName, senderInfo.photoURL, msgData.text);
             });
             messageList.scrollTop = messageList.scrollHeight;
@@ -964,7 +892,7 @@
         function displayMessage(name, icon, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
-            const safeIcon = icon || 'https://i.imgur.com/6M6yJ1I.png'; 
+            const safeIcon = icon || defaultIcon; // ★匿名の人のアイコン★
             const safeText = text || ''; 
             const escapedText = safeText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const messageBodyHTML = `<div class="message-text">${escapedText}</div>`;
@@ -986,7 +914,7 @@
             const newName = profileNameInput.value.trim();
             let newIcon = profileIconInput.value.trim();
             if (newName === '') return alert('名前を入力してください。');
-            if (newIcon === '') newIcon = 'https://i.imgur.com/6M6yJ1I.png'; 
+            if (newIcon === '') newIcon = defaultIcon; // ★匿名の人のアイコン★
             if (!currentUser) return;
             try {
                 const userRef = doc(db, "users", currentUser.uid);
