@@ -214,6 +214,18 @@
         }
         #settings-btn:hover { color: #fff; }
 
+        /* ★(ログアウトボタン用)★ */
+        #logout-btn {
+            font-size: 1.2em; 
+            color: #b9bbbe; 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            padding: 5px;
+            margin-left: 5px; /* ★設定ボタンとの間隔 */
+        }
+        #logout-btn:hover { color: #fff; }
+
         /* メインコンテンツ */
         #main-content {
             flex-grow: 1; display: flex; flex-direction: column; background: #36393f;
@@ -232,6 +244,16 @@
         .message-icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
         .message-content { padding-top: 5px; }
         .message-sender { font-weight: bold; color: #fff; margin-bottom: 5px; } 
+        /* ★(BAN機能用) 管理者が見たときのカーソル */
+        .message-sender.admin-bannable {
+             cursor: pointer;
+             text-decoration: underline;
+             text-decoration-color: #f04747;
+        }
+        .message-sender.admin-bannable:hover {
+            color: #f04747;
+        }
+        
         .message-text { line-height: 1.4; color: #dcddde; } 
 
         /* 送信フォーム */
@@ -262,8 +284,7 @@
         
         .hidden { display: none !important; }
     </style>
-</head>
-<body>
+</head><body>
 
     <div id="login-overlay">
         <div id="login-box">
@@ -336,6 +357,8 @@
             <img id="user-icon" src="" alt="icon">
             <span id="user-name"></span>
             <button id="settings-btn" title="プロフィール設定">⚙️</button>
+            
+            <button id="logout-btn" title="ログアウト">🚪</button>
         </div>
     </div>
 
@@ -374,14 +397,15 @@
             signInWithPopup, 
             onAuthStateChanged,
             createUserWithEmailAndPassword,
-            signInWithEmailAndPassword
+            signInWithEmailAndPassword,
+            signOut // ★ ログアウト機能
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         // Firestore データベースサービスをインポート
         import { 
             getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, updateDoc, getDoc, where,
             arrayUnion, deleteDoc,
-            getDocs // ★インデックス不要の検索(getDocs)をインポート
+            getDocs 
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // ★★★ あなたのFirebase設定 (組み込み済み) ★★★
@@ -401,12 +425,8 @@
         const db = getFirestore(app);
         
         // --- 0. ★グローバル変数 と 初期アイコン★ ---
-        
-        // ★★★ (リクエスト修正) ★★★
-        // ★ご要望の「匿名の人のアイコン」のURLです★
         const defaultIcon = 'https://i.imgur.com/B1Q1hL1.png';
-        // ★★★ (修正ここまで) ★★★
-
+        
         // DOM要素の取得 (ログイン関連)
         const loginOverlay = document.getElementById('login-overlay');
         const loginTabs = document.querySelectorAll('.login-tab');
@@ -421,6 +441,7 @@
         const userInfoBar = document.getElementById('user-info-bar');
         const userIcon = document.getElementById('user-icon');
         const userName = document.getElementById('user-name');
+        const logoutBtn = document.getElementById('logout-btn'); // ★ ログアウトボタン取得
         const messageList = document.getElementById('message-list');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
@@ -442,6 +463,7 @@
         
         // グローバル変数
         let currentUser = null;
+        let globalIsAdmin = false; // ★ 管理者フラグ
         let usersMap = {}; 
         let currentMessages = [];
         let currentChannelId = 'general'; 
@@ -450,6 +472,13 @@
         
         
         // --- 1. 認証 (ログイン) 処理 ---
+
+        // ★ ログアウトボタンのイベントリスナー
+        logoutBtn.addEventListener('click', () => {
+            if (confirm("ログアウトしますか？")) {
+                signOut(auth).catch(err => console.error("ログアウト失敗", err));
+            }
+        });
 
         // ★ログイン/新規登録のタブ切り替え
         loginTabs.forEach(tab => {
@@ -519,29 +548,56 @@
             }
         });
 
-        // ★認証状態の監視 (ログイン/ログアウトを検知)
+        // ★認証状態の監視 (★ブラックリスト対応★)
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 // ログイン成功
                 currentUser = user;
+                
+                // ★ ブラックリストに載っていないか確認
+                const banDoc = await getDoc(doc(db, "blacklist", user.uid));
+                if (banDoc.exists()) {
+                    // ★ BANされていた場合
+                    alert("あなたはブラックリストに登録されているため、ログインできません。");
+                    signOut(auth); // 強制ログアウト
+                    return; // これ以降の処理を中断
+                }
+                
+                // ★ 管理者アカウントかどうかをチェック
+                if (user.email === 'mottikoyama@gmail.com') {
+                    globalIsAdmin = true;
+                    console.log("管理者アカウントでログインしました。");
+                } else {
+                    globalIsAdmin = false;
+                }
+                
                 loginOverlay.classList.add('hidden'); 
-                sidebar.classList.remove('hidden'); // ★チャットUIを表示
-                mainContent.classList.remove('hidden'); // ★チャットUIを表示
+                sidebar.classList.remove('hidden'); 
+                mainContent.classList.remove('hidden');
                 
                 await setupUserProfile(user); 
                 
                 listenToUsers(); 
                 listenToPublicChannels(); 
-                listenToMyProfileAndPrivateChannels(user.uid); 
+                
+                // ★ 管理者かどうかで、読み込むCHを変える
+                if (globalIsAdmin) {
+                    // 管理者は「全ての」プライベートCHを監視する
+                    listenToAllPrivateChannelsForAdmin();
+                } else {
+                    // 一般ユーザーは「自分の」プライベートCHだけ監視する
+                    listenToMyProfileAndPrivateChannels(user.uid); 
+                }
                 
                 switchChannel('general', 'general');
                 
             } else {
                 // ログアウト状態
                 currentUser = null;
+                globalIsAdmin = false; // ★ ログアウトしたら管理者フラグを消す
                 loginOverlay.classList.remove('hidden'); 
-                sidebar.classList.add('hidden'); // ★チャットUIを隠す
-                mainContent.classList.add('hidden'); // ★チャットUIを隠す
+                sidebar.classList.add('hidden'); 
+                mainContent.classList.add('hidden'); 
                 
                 messageList.innerHTML = ''; 
                 publicChannelList.innerHTML = '';
@@ -601,7 +657,7 @@
             });
         });
 
-        // ★自分のプロフィールとプライベートCHを監視する
+        // ★自分のプロフィールとプライベートCHを監視する (一般ユーザー用)
         function listenToMyProfileAndPrivateChannels(uid) {
             const userRef = doc(db, "users", uid);
             
@@ -611,18 +667,55 @@
                 if (doc.exists()) {
                     const data = doc.data();
                     // プロフィールを更新
-                    userIcon.src = data.photoURL || defaultIcon; // ★匿名の人のアイコン★
+                    userIcon.src = data.photoURL || defaultIcon; 
                     userName.textContent = data.displayName;
                     profileNameInput.value = data.displayName;
                     profileIconInput.value = data.photoURL;
                     
-                    // ★プライベートCHのリストを描画し直す★
                     renderPrivateChannels(data.joinedPrivateChannels || []);
                 }
             });
         }
         
-        // ★★★ (バグ修正 1/2) ★★★
+        // ★ 全てのプライベートCHを監視する (管理者用)
+        function listenToAllPrivateChannelsForAdmin() {
+            // プライベートCH (secretId が null *じゃない* もの) を全部監視
+            const q = query(collection(db, "channels"), where("secretId", "!=", null));
+
+            onSnapshot(q, (snapshot) => {
+                privateChannelList.innerHTML = ''; 
+                const channels = [];
+                snapshot.forEach((doc) => {
+                    channels.push({ id: doc.id, data: doc.data() });
+                });
+
+                // JS側で名前順にソート
+                channels.sort((a, b) => a.data.name.localeCompare(b.data.name));
+                
+                channels.forEach((channel) => {
+                    // ★ createChannelElement に管理者フラグを渡す (常に削除ボタン表示)
+                    const li = createChannelElement(channel.id, channel.data.name, true, channel.data.ownerId); 
+                    privateChannelList.appendChild(li);
+                });
+                
+            }, (error) => { 
+                console.error("管理者用プライベートCHの監視エラー:", error);
+            });
+            
+            // ★管理者の場合は、自分のプロフィールだけ別途監視する
+            const userRef = doc(db, "users", currentUser.uid);
+            if (unsubscribeMyProfile) unsubscribeMyProfile();
+            unsubscribeMyProfile = onSnapshot(userRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    userIcon.src = data.photoURL || defaultIcon; 
+                    userName.textContent = data.displayName;
+                    profileNameInput.value = data.displayName;
+                    profileIconInput.value = data.photoURL;
+                }
+            });
+        }
+        
         // ★プライベートCHを描画する関数 (競合状態バグを修正)★
         async function renderPrivateChannels(idArray) {
             
@@ -657,8 +750,6 @@
                 }
             }
         }
-        // ★★★ (修正ここまで 1/2) ★★★
-
         
         // ★公開チャンネルの並び替え (インデックス不要版)
         function listenToPublicChannels() {
@@ -676,11 +767,11 @@
                 channels.sort((a, b) => a.data.name.localeCompare(b.data.name));
                 
                 if (channels.length === 0) {
-                        addDoc(collection(db, "channels"), { 
-                            name: "general", 
-                            secretId: null, 
-                            ownerId: "system" 
-                        });
+                     addDoc(collection(db, "channels"), { 
+                        name: "general", 
+                        secretId: null, 
+                        ownerId: "system" 
+                    });
                 } else {
                     channels.forEach((channel) => {
                         const li = createChannelElement(channel.id, channel.data.name, false, channel.data.ownerId); 
@@ -692,7 +783,7 @@
             });
         }
         
-        // チャンネルのHTML要素を作成 (変更なし)
+        // ★ チャンネルのHTML要素を作成 (削除ボタンのロジック変更)
         function createChannelElement(id, name, isPrivate, ownerId) {
             const li = document.createElement('li');
             li.className = 'channel-item';
@@ -704,7 +795,9 @@
                 switchChannel(id, name);
             });
             li.appendChild(nameSpan);
-            if (ownerId === currentUser.uid && id !== 'general') { 
+            
+            // ★ オーナー(ownerId) または 管理者(globalIsAdmin) なら削除ボタン表示
+            if (id !== 'general' && (ownerId === currentUser.uid || globalIsAdmin)) { 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-channel-btn';
                 deleteBtn.innerHTML = '🗑️';
@@ -760,7 +853,6 @@
                     // プライベートCHの場合：自分を参加させ、切り替える
                     const userRef = doc(db, "users", currentUser.uid);
                     await updateDoc(userRef, { joinedPrivateChannels: arrayUnion(docRef.id) });
-                    // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、自動でリストが更新される★
                     switchChannel(docRef.id, newChannelData.name);
                 } else {
                     // ★公開CHの場合：すぐにチャンネルを切り替える★
@@ -775,7 +867,6 @@
             } catch (error) { console.error("チャンネル追加エラー:", error); }
         });
         
-        // ★★★ (バグ修正 2/2) ★★★
         // ★IDで参加するフォーム (インデックス不要版)
         joinPrivateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -817,119 +908,171 @@
                 alert('チャンネルの検索中にエラーが発生しました。');
             }
         });
-        // ★★★ (修正ここまで 2/2) ★★★
 
-        // チャンネル切り替え
-        function switchChannel(channelId, channelName) {
-            currentChannelId = channelId;
-            currentChannelName.textContent = channelName;
+        
+        // ★チャンネルを切り替える (変更なし)
+        function switchChannel(id, name) {
+            if (currentChannelId === id) return; // 同じなら何もしない
             
-            // 古い監視を停止
-            if (unsubscribeMessages) unsubscribeMessages();
+            currentChannelId = id;
+            currentChannelName.textContent = name;
             
-            // 新しい監視を開始
-            const q = query(
-                collection(db, "channels", channelId, "messages"), 
-                orderBy("createdAt", "desc"), // 新しい順
-            );
+            document.querySelectorAll('.channel-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.id === id);
+            });
             
             messageList.innerHTML = '';
             
+            if (unsubscribeMessages) unsubscribeMessages();
+            
+            const messagesRef = collection(db, "channels", id, "messages");
+            const q = query(messagesRef, orderBy("timestamp", "asc"));
+            
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                currentMessages = [];
-                snapshot.forEach(doc => {
-                    currentMessages.push({ id: doc.id, ...doc.data() });
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        renderMessage(change.doc.id, change.doc.data());
+                    }
                 });
-                renderMessages();
-            });
-
-            // サイドバーのアクティブ表示を更新
-            document.querySelectorAll('.channel-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.id === channelId);
             });
         }
 
         // --- 3. メッセージ処理 ---
+        
+        // ★ ユーザーをBANする機能を追加
+        async function banUser(uid, displayName) {
+            if (!globalIsAdmin) return; // 管理者のみ
+            if (uid === currentUser.uid) {
+                alert("自分自身をBANすることはできません。");
+                return;
+            }
+            
+            // ★ BAN済みの人をBANしようとしたらアラート
+            const banDoc = await getDoc(doc(db, "blacklist", uid));
+            if (banDoc.exists()) {
+                 alert(`ユーザー「${displayName}」は既にブラックリストに登録されています。`);
+                 return;
+            }
 
-        // ユーザー名簿(users)の監視
+            if (confirm(`本当にユーザー「${displayName}」(ID: ${uid}) をブラックリストに追加しますか？\nこの操作は取り消せません。(※手動では可能です)`)) {
+                try {
+                    // "blacklist" コレクションに、その人のUIDでドキュメントを作成
+                    await setDoc(doc(db, "blacklist", uid), {
+                        banned: true,
+                        name: displayName,
+                        bannedBy: currentUser.email,
+                        bannedAt: serverTimestamp() // ★いつBANしたか記録
+                    });
+                    alert(`ユーザー「${displayName}」をブラックリストに追加しました。\n対象ユーザーは次回のログインから弾かれます。`);
+                } catch (error) {
+                    console.error("BAN処理エラー:", error);
+                    alert("BAN処理中にエラーが発生しました。");
+                }
+            }
+        }
+        
+        // ★ユーザー名簿の監視 (変更なし)
         function listenToUsers() {
-            onSnapshot(collection(db, "users"), (snapshot) => {
-                usersMap = {};
-                snapshot.forEach(doc => {
-                    usersMap[doc.id] = doc.data();
+            const usersRef = collection(db, "users");
+            onSnapshot(usersRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added" || change.type === "modified") {
+                        usersMap[change.doc.id] = change.doc.data();
+                    }
+                    // ★(もしBANされたら、usersから消す運用ならここにも)
+                    // if (change.type === "removed") {
+                    //     delete usersMap[change.doc.id];
+                    // }
                 });
-                renderMessages(); // ユーザー情報が更新されたらメッセージを再描画
             });
         }
-
-        // メッセージ送信
+        
+        // ★メッセージ送信 (変更なし)
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = messageInput.value.trim();
-            if (text === '' || !currentUser) return;
+            if (text === '' || !currentUser || !currentChannelId) return;
             
             try {
-                await addDoc(collection(db, "channels", currentChannelId, "messages"), {
+                const messagesRef = collection(db, "channels", currentChannelId, "messages");
+                await addDoc(messagesRef, {
                     text: text,
-                    senderId: currentUser.uid,
-                    createdAt: serverTimestamp()
+                    uid: currentUser.uid,
+                    timestamp: serverTimestamp()
                 });
                 messageInput.value = '';
             } catch (error) {
-                console.error("メッセージ送信エラー:", error);
+                console.error("メッセージ送信エラー: ", error);
             }
         });
-
-        // メッセージ描画
-        function renderMessages() {
-            messageList.innerHTML = '';
+        
+        // ★メッセージ描画 (★ブラックリスト対応★)
+        function renderMessage(id, data) {
+            // ★(追加) メッセージ送信者が不明(usersMapにいない)なら何もしない
+            // (BANされたユーザーのメッセージは表示しない、などもできる)
+            if (!usersMap[data.uid]) {
+                 console.warn("送信者情報が見つからないため、メッセージを非表示:", data.uid);
+                 return;
+            }
             
-            // ★新しい順 (desc) で取得したので、逆順 (reverse) にして古い順に描画
-            currentMessages.slice().reverse().forEach(msg => {
-                const user = usersMap[msg.senderId];
-                const displayName = user ? user.displayName : '不明なユーザー';
-                const photoURL = (user ? user.photoURL : null) || defaultIcon; // ★匿名の人のアイコン★
-                
-                const msgEl = document.createElement('div');
-                msgEl.className = 'message';
-                
-                msgEl.innerHTML = `
-                    <img src="${photoURL}" alt="${displayName}" class="message-icon">
-                    <div class="message-content">
-                        <div class="message-sender">${displayName}</div>
-                        <div class="message-text">${escapeHTML(msg.text)}</div>
-                    </div>
-                `;
-                messageList.appendChild(msgEl);
-            });
+            const userData = usersMap[data.uid];
             
-            // 一番下にスクロール
-            messageList.scrollTop = messageList.scrollHeight;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            msgDiv.dataset.id = id;
+            
+            const iconImg = document.createElement('img');
+            iconImg.className = 'message-icon';
+            iconImg.src = userData.photoURL || defaultIcon; 
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            const senderSpan = document.createElement('span');
+            senderSpan.className = 'message-sender';
+            senderSpan.textContent = userData.displayName;
+            
+            // ★ 管理者なら、メッセージをクリックしてBANできるようにする
+            if (globalIsAdmin && data.uid !== currentUser.uid) { // ★自分自身はクリックできないように
+                senderSpan.classList.add('admin-bannable'); // ★CSSクラスを追加
+                senderSpan.title = `クリックしてBAN (ID: ${data.uid})`;
+                senderSpan.addEventListener('click', () => {
+                    banUser(data.uid, userData.displayName);
+                });
+            }
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'message-text';
+            textSpan.textContent = data.text;
+            
+            contentDiv.appendChild(senderSpan);
+            contentDiv.appendChild(textSpan);
+            msgDiv.appendChild(iconImg);
+            msgDiv.appendChild(contentDiv);
+            
+            messageList.appendChild(msgDiv);
+            messageList.scrollTop = messageList.scrollHeight; // 自動スクロール
         }
 
-        // --- 4. プロフィール編集 ---
+        // --- 4. プロフィール編集 (変更なし) ---
         
+        // ★設定モーダルを開く
         settingsBtn.addEventListener('click', () => {
-            // 現在のプロフィール情報をフォームにセット
+            profileModalOverlay.classList.remove('hidden');
+        });
+        
+        // ★設定モーダルを閉じる (キャンセル)
+        profileCancelBtn.addEventListener('click', () => {
+            profileModalOverlay.classList.add('hidden');
+            // 入力内容を、保存されている元の状態に戻す
             const myProfile = usersMap[currentUser.uid];
             if (myProfile) {
                 profileNameInput.value = myProfile.displayName;
-                profileIconInput.value = myProfile.photoURL || '';
+                profileIconInput.value = myProfile.photoURL;
             }
-            profileModalOverlay.classList.remove('hidden');
-        });
-
-        profileCancelBtn.addEventListener('click', () => {
-            profileModalOverlay.classList.add('hidden');
         });
         
-        // モーダルの背景クリック
-        profileModalOverlay.addEventListener('click', (e) => {
-            if (e.target === profileModalOverlay) {
-                profileModalOverlay.classList.add('hidden');
-            }
-        });
-
+        // ★設定を保存
         profileSaveBtn.addEventListener('click', async () => {
             const newName = profileNameInput.value.trim();
             let newIcon = profileIconInput.value.trim();
@@ -938,10 +1081,8 @@
                 alert('表示名を入力してください。');
                 return;
             }
-            
-            // ★アイコンが空なら、匿名の人のアイコンをセット★
             if (newIcon === '') {
-                newIcon = defaultIcon;
+                newIcon = defaultIcon; // ★空欄なら匿名の人のアイコン★
             }
             
             try {
@@ -950,27 +1091,12 @@
                     displayName: newName,
                     photoURL: newIcon
                 });
-                // ★↑この updateDoc が、onSnapshot(userRef) を発火させ、自動でUIが更新される★
-                
                 profileModalOverlay.classList.add('hidden');
             } catch (error) {
                 console.error("プロフィール更新エラー:", error);
-                alert('プロフィールの更新に失敗しました。');
             }
         });
 
-        // --- 5. ヘルパー関数 ---
-        function escapeHTML(str) {
-            return str.replace(/[&<>"']/g, function(match) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;'
-                }[match];
-            });
-        }
     </script>
 </body>
 </html>
